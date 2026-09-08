@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "M International — AI Quote Agent"
+description = "An aviation aftermarket RFQ and operations management platform for monitoring requests, AI processing, reviews, and fulfillment activity."
+version = "1.0.0"
+id = "artifacts/ai-quote-agent"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22999
+
+[services.development]
+run = "pnpm --filter @workspace/ai-quote-agent run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-quote-agent", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/ai-quote-agent/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22999"
+BASE_PATH = "/"

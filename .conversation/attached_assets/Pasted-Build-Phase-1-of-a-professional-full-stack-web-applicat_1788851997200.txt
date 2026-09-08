@@ -1,0 +1,746 @@
+Build Phase 1 of a professional full-stack web application called:
+
+M INTERNATIONAL — AI QUOTE AGENT
+
+This is an AI-powered aviation aftermarket RFQ and operations management platform.
+
+IMPORTANT:
+Build a REAL working application, not just a static UI mockup.
+
+For this phase, focus ONLY on:
+
+1. Project foundation
+2. Professional enterprise UI
+3. Sidebar navigation
+4. Dashboard
+5. Backend foundation
+6. Database foundation
+7. Mock data
+
+Do NOT build Microsoft email integration, OpenAI integration, pricing, quotes, orders, or shipping yet.
+
+====================================================
+TECHNOLOGY STACK
+====================================================
+
+Frontend:
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
+
+Backend:
+- Python
+- FastAPI
+
+Database:
+- PostgreSQL
+
+ORM:
+- SQLAlchemy
+
+Use a clean modular architecture.
+
+====================================================
+PROJECT STRUCTURE
+====================================================
+
+Create a clean project structure similar to:
+
+frontend/
+  src/
+    components/
+    pages/
+    layouts/
+    services/
+    hooks/
+    types/
+
+backend/
+  app/
+    api/
+    models/
+    schemas/
+    services/
+    database/
+    core/
+
+Do not put all application logic into a single file.
+
+====================================================
+APPLICATION DESIGN
+====================================================
+
+The application is for an aviation parts and services company called:
+
+M International
+
+Application name:
+
+AI Quote Agent
+
+The UI must look like professional enterprise operations software.
+
+Design style:
+
+- Clean
+- Simple
+- Professional
+- Modern
+- Enterprise-focused
+- Desktop-first
+- Easy for employees to use
+
+DO NOT use:
+
+- Excessive gradients
+- Bright colorful backgrounds
+- Gaming-style UI
+- Landing-page style
+- Large unnecessary illustrations
+- Excessive animations
+
+Use:
+
+- Professional neutral colors
+- Clean backgrounds
+- Clear typography
+- Subtle borders
+- Professional cards
+- Data tables
+- Status badges
+- Consistent spacing
+
+====================================================
+SIDEBAR NAVIGATION
+====================================================
+
+Create a professional collapsible sidebar.
+
+Header:
+
+M INTERNATIONAL
+
+AI QUOTE AGENT
+
+Navigation:
+
+DASHBOARD
+- Dashboard
+
+RFQ MANAGEMENT
+- RFQ Inbox
+- Email Inbox
+- AI Review
+
+WORKFLOWS
+- Parts Exchange
+- New Parts Purchase
+- Repair & Overhaul
+
+OPERATIONS
+- Compliance
+- Inventory
+- Pricing
+- Quotes
+- Orders
+- Fulfillment
+- Shipping
+
+ADMINISTRATION
+- Email Configuration
+- Users
+- Settings
+
+IMPORTANT:
+
+For Phase 1, all navigation items should have working routes.
+
+However, pages that are not being fully implemented yet should display a professional:
+
+"Coming Soon"
+
+or
+
+"Module will be implemented in the next phase"
+
+page.
+
+Do NOT leave broken routes or blank pages.
+
+====================================================
+MAIN APPLICATION LAYOUT
+====================================================
+
+Create:
+
+- Collapsible sidebar
+- Top navigation bar
+- Page title
+- Breadcrumbs where appropriate
+- User profile area
+- Notification icon
+- Responsive layout
+
+The sidebar should remain visible on desktop.
+
+====================================================
+DASHBOARD
+====================================================
+
+Create a professional operations dashboard.
+
+Dashboard title:
+
+Operations Dashboard
+
+Subtitle:
+
+Monitor RFQs, AI processing, quotes, and operational activities.
+
+----------------------------------------------------
+SUMMARY CARDS
+----------------------------------------------------
+
+Display these cards:
+
+1. New RFQs
+2. Emails Waiting for Processing
+3. AI Review Required
+4. Quotes Pending Approval
+5. Quotes Sent
+6. Accepted Orders
+7. Orders in Fulfillment
+
+Use realistic numbers.
+
+Example:
+
+New RFQs
+24
+
+Emails Waiting
+12
+
+AI Review Required
+5
+
+Quotes Pending
+8
+
+Quotes Sent
+31
+
+Accepted Orders
+14
+
+Orders in Fulfillment
+9
+
+----------------------------------------------------
+RECENT RFQs TABLE
+----------------------------------------------------
+
+Create a professional table.
+
+Columns:
+
+RFQ Number
+Customer
+Source
+Request Type
+AI Confidence
+Priority
+Status
+Created Date
+
+Use realistic aviation sample data.
+
+Examples:
+
+RFQ-2026-00125
+ABC Aviation
+Email
+New Part Purchase
+97%
+High
+Under Review
+Today
+
+RFQ-2026-00126
+Global Air Services
+Website
+Parts Exchange
+94%
+Medium
+Processing
+Today
+
+RFQ-2026-00127
+SkyTech Aviation
+Email
+Repair
+68%
+High
+Needs Human Review
+Yesterday
+
+Clicking an RFQ should navigate to a placeholder RFQ detail route for now.
+
+----------------------------------------------------
+WORKFLOW OVERVIEW
+----------------------------------------------------
+
+Show workflow statistics for:
+
+- Parts Exchange
+- New Part Purchase
+- Repair
+- Overhaul
+
+Use professional cards or charts.
+
+----------------------------------------------------
+RECENT ACTIVITY
+----------------------------------------------------
+
+Create an activity timeline.
+
+Examples:
+
+New Email Received
+
+AI Classified RFQ
+
+RFQ Created
+
+Compliance Approved
+
+Quote Generated
+
+Quote Sent
+
+====================================================
+RFQ INBOX
+====================================================
+
+Create the initial RFQ Inbox page.
+
+This should be functional using mock data.
+
+Header:
+
+RFQ Inbox
+
+Subtitle:
+
+Manage and process customer requests.
+
+----------------------------------------------------
+SEARCH
+----------------------------------------------------
+
+Allow searching by:
+
+- RFQ Number
+- Customer Name
+- Part Number
+
+----------------------------------------------------
+FILTERS
+----------------------------------------------------
+
+Add filters for:
+
+- Source
+- Request Type
+- Priority
+- Status
+
+----------------------------------------------------
+TABLE
+----------------------------------------------------
+
+Columns:
+
+RFQ Number
+Customer
+Source
+Request Type
+AI Confidence
+Priority
+Status
+Created Date
+Actions
+
+Use realistic mock data.
+
+Features:
+
+- Search
+- Filtering
+- Sorting if practical
+- Click row to navigate
+- Status badges
+
+====================================================
+EMAIL INBOX
+====================================================
+
+For Phase 1, create a basic Email Inbox using mock data.
+
+Do NOT connect to Microsoft 365 yet.
+
+Columns:
+
+Sender
+Subject
+Received Date
+AI Status
+Request Type
+Confidence
+Status
+
+Example email:
+
+Sender:
+ABC Aviation
+
+Subject:
+Request for PT6A Fuel Pump
+
+Received:
+Today, 10:30 AM
+
+AI Status:
+Analyzed
+
+Request Type:
+New Part Purchase
+
+Confidence:
+97%
+
+Status:
+RFQ Created
+
+Create a functional page with mock data.
+
+====================================================
+AI REVIEW PAGE
+====================================================
+
+Create a basic AI Review Queue using mock data.
+
+Show requests that require human review.
+
+Reasons may include:
+
+- Low AI confidence
+- Unknown request type
+- Missing information
+
+Columns:
+
+RFQ
+Customer
+AI Classification
+Confidence
+Reason
+Status
+Action
+
+Example:
+
+RFQ-2026-00127
+
+SkyTech Aviation
+
+Repair
+
+68%
+
+Low Confidence
+
+Needs Review
+
+Include buttons:
+
+- Review
+- Approve
+- Change Classification
+
+For now, these can update mock state locally.
+
+====================================================
+DATABASE FOUNDATION
+====================================================
+
+Set up the PostgreSQL and SQLAlchemy architecture.
+
+Create database configuration.
+
+Create initial models for:
+
+----------------------------------------------------
+USERS
+----------------------------------------------------
+
+id
+name
+email
+role
+created_at
+
+----------------------------------------------------
+CUSTOMERS
+----------------------------------------------------
+
+id
+name
+company
+email
+phone
+created_at
+
+----------------------------------------------------
+RFQS
+----------------------------------------------------
+
+id
+rfq_number
+source
+customer_id
+request_type
+confidence
+priority
+status
+created_at
+
+----------------------------------------------------
+EMAILS
+----------------------------------------------------
+
+id
+message_id
+sender
+recipient
+subject
+body
+received_at
+status
+rfq_id
+
+----------------------------------------------------
+AI_ANALYSES
+----------------------------------------------------
+
+id
+rfq_id
+request_type
+confidence
+extracted_data
+missing_information
+human_verified
+created_at
+
+IMPORTANT:
+
+If PostgreSQL is not available during development, create a development-friendly fallback or clearly configure the application for Replit's available database solution.
+
+The application should still run successfully.
+
+====================================================
+BACKEND API FOUNDATION
+====================================================
+
+Create FastAPI.
+
+Create basic API routes:
+
+GET /api/health
+
+GET /api/dashboard
+
+GET /api/rfqs
+
+GET /api/emails
+
+GET /api/ai-review
+
+Return realistic mock or seeded data.
+
+Make sure the frontend communicates with the backend through APIs.
+
+Do NOT hardcode all business data directly inside frontend components.
+
+====================================================
+MOCK DATA
+====================================================
+
+Create realistic aviation industry sample data.
+
+Customers:
+
+- ABC Aviation
+- Global Air Services
+- SkyTech Aviation
+- AeroParts International
+
+Create sample:
+
+- RFQs
+- Emails
+- AI Analyses
+- Dashboard statistics
+
+Use consistent relationships between the data.
+
+====================================================
+STATUS SYSTEM
+====================================================
+
+Create consistent status badges.
+
+RFQ statuses:
+
+- NEW
+- ANALYZING
+- UNDER_REVIEW
+- PROCESSING
+- NEEDS_HUMAN_REVIEW
+- COMPLETED
+- CLOSED
+
+Priority:
+
+- LOW
+- MEDIUM
+- HIGH
+- URGENT
+
+Request types:
+
+- PARTS_EXCHANGE
+- NEW_PART_PURCHASE
+- REPAIR
+- OVERHAUL
+- INSPECTION
+- UNKNOWN
+
+====================================================
+ERROR HANDLING
+====================================================
+
+Implement:
+
+Frontend:
+
+- Loading states
+- Empty states
+- Error messages
+
+Backend:
+
+- Proper API error responses
+- Validation
+- Logging
+
+A failed API request must not crash the entire application.
+
+====================================================
+ENVIRONMENT CONFIGURATION
+====================================================
+
+Create a .env.example file.
+
+Include:
+
+DATABASE_URL=
+
+JWT_SECRET=
+
+OPENAI_API_KEY=
+
+MICROSOFT_CLIENT_ID=
+MICROSOFT_CLIENT_SECRET=
+MICROSOFT_TENANT_ID=
+
+Do not use or require these integrations yet.
+
+Do not expose secrets in frontend code.
+
+====================================================
+PHASE 1 LIMITATIONS
+====================================================
+
+DO NOT implement yet:
+
+- Real Microsoft 365 authentication
+- Microsoft Graph API
+- Real email retrieval
+- OpenAI API
+- Real AI classification
+- Pricing engine
+- Compliance engine
+- Quote generation
+- Orders
+- Fulfillment
+- Shipping
+
+Only create the foundation and professional placeholder pages for these future modules.
+
+====================================================
+FINAL VALIDATION
+====================================================
+
+Before finishing, verify:
+
+✓ Application starts successfully
+
+✓ Frontend loads successfully
+
+✓ Backend starts successfully
+
+✓ API health endpoint works
+
+✓ Dashboard loads data
+
+✓ Sidebar navigation works
+
+✓ No broken routes
+
+✓ RFQ Inbox works
+
+✓ Search works
+
+✓ Filters work
+
+✓ Email Inbox loads
+
+✓ AI Review Queue loads
+
+✓ Mock data is displayed correctly
+
+✓ Database architecture exists
+
+✓ No major console errors
+
+✓ No major runtime errors
+
+IMPORTANT:
+
+Fix all errors before finishing.
+
+Do not stop after generating static UI.
+
+Build a working Phase 1 application with frontend and backend communication.
+
+At the end, provide a short summary explaining:
+
+1. What was built
+2. How to run the project
+3. Which pages are functional
+4. Which features use mock data
+5. What should be built in Phase 2

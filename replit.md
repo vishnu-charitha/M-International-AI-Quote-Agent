@@ -1,6 +1,6 @@
-# [Project name]
+# M International — AI Quote Agent
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An AI-assisted aviation aftermarket operations platform for monitoring RFQs, processing inbound requests, and coordinating operational workflows.
 
 ## Run & Operate
 
@@ -19,26 +19,39 @@ _Replace the heading above with the project's name, and this line with one sente
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
+- Frontend: React, Vite, Tailwind CSS, shadcn/ui primitives, Wouter, TanStack Query
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/ai-quote-agent` — deployable web application and operations UI
+- `artifacts/api-server` — Express API with dashboard, RFQ, email, and AI review routes
+- `lib/api-spec/openapi.yaml` — API contract source of truth
+- `lib/db/src/schema` — PostgreSQL schema definitions for users, customers, RFQs, emails, and AI analyses
+- `artifacts/api-server/src/services/mock-data.ts` — realistic Phase 1 aviation sample data
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Phase 1 uses OpenAPI-first contracts so the frontend consumes generated hooks rather than duplicating API types.
+- The API returns consistent aviation sample data while database tables establish the persistence model for later phases.
+- Future modules use working routes with clear placeholder states rather than broken or blank navigation targets.
+- AI review actions are wired to the API and update the in-memory Phase 1 queue until persistence is introduced.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Operations dashboard with KPI summary, workflow progress, recent RFQ table, and activity feed
+- Searchable/filterable RFQ Inbox and RFQ detail view
+- Mock Email Inbox with AI analysis status
+- AI Review queue with approve and reclassify actions
+- Placeholder pages for planned workflow, operations, and administration modules
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+No additional preferences recorded.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Run `pnpm --filter @workspace/api-spec run codegen` after changing `lib/api-spec/openapi.yaml`.
+- Run the API and web services through their managed workflows so proxy routing and required environment variables are present.
 
 ## Pointers
 

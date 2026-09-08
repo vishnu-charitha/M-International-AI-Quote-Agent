@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: M International AI Quote Agent operations API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: operations
+    description: RFQ and operations monitoring
 paths:
   /healthz:
     get:
@@ -24,7 +26,150 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [operations]
+      summary: Get operations dashboard
+      responses:
+        "200":
+          description: Dashboard summary and activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /rfqs:
+    get:
+      operationId: listRfqs
+      tags: [operations]
+      summary: List RFQs
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/Source"
+        - $ref: "#/components/parameters/RequestType"
+        - $ref: "#/components/parameters/Priority"
+        - $ref: "#/components/parameters/Status"
+      responses:
+        "200":
+          description: RFQ list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rfq"
+  /rfqs/{rfqId}:
+    get:
+      operationId: getRfq
+      tags: [operations]
+      summary: Get an RFQ
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      responses:
+        "200":
+          description: RFQ details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RfqDetail"
+        "404":
+          description: RFQ not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /emails:
+    get:
+      operationId: listEmails
+      tags: [operations]
+      summary: List ingested emails
+      responses:
+        "200":
+          description: Email list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Email"
+  /ai-review:
+    get:
+      operationId: listAiReviews
+      tags: [operations]
+      summary: List requests needing human review
+      responses:
+        "200":
+          description: AI review queue
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AiReview"
+  /ai-review/{rfqId}/action:
+    post:
+      operationId: reviewAi
+      tags: [operations]
+      summary: Apply a review queue action
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiReviewAction"
+      responses:
+        "200":
+          description: Updated review item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiReview"
+        "404":
+          description: RFQ not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
+  parameters:
+    RfqId:
+      name: rfqId
+      in: path
+      required: true
+      schema:
+        type: integer
+    Search:
+      name: search
+      in: query
+      required: false
+      schema:
+        type: string
+    Source:
+      name: source
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/RfqSource"
+    RequestType:
+      name: requestType
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/RequestType"
+    Priority:
+      name: priority
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/Priority"
+    Status:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/RfqStatus"
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +178,187 @@ components:
           type: string
       required:
         - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    RfqSource:
+      type: string
+      enum: [EMAIL, WEBSITE, PHONE, PORTAL]
+    RequestType:
+      type: string
+      enum: [PARTS_EXCHANGE, NEW_PART_PURCHASE, REPAIR, OVERHAUL, INSPECTION, UNKNOWN]
+    RfqStatus:
+      type: string
+      enum: [NEW, ANALYZING, UNDER_REVIEW, PROCESSING, NEEDS_HUMAN_REVIEW, COMPLETED, CLOSED]
+    Priority:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, URGENT]
+    SummaryMetric:
+      type: object
+      properties:
+        label:
+          type: string
+        value:
+          type: integer
+        trend:
+          type: number
+        tone:
+          type: string
+          enum: [blue, amber, violet, orange, green, teal, slate]
+      required: [label, value, trend, tone]
+    Rfq:
+      type: object
+      properties:
+        id:
+          type: integer
+        rfqNumber:
+          type: string
+        customer:
+          type: string
+        customerCompany:
+          type: string
+        partNumber:
+          type: string
+        source:
+          $ref: "#/components/schemas/RfqSource"
+        requestType:
+          $ref: "#/components/schemas/RequestType"
+        confidence:
+          type: integer
+        priority:
+          $ref: "#/components/schemas/Priority"
+        status:
+          $ref: "#/components/schemas/RfqStatus"
+        createdAt:
+          type: string
+        age:
+          type: string
+      required: [id, rfqNumber, customer, customerCompany, partNumber, source, requestType, confidence, priority, status, createdAt, age]
+    RfqDetail:
+      allOf:
+        - $ref: "#/components/schemas/Rfq"
+        - type: object
+          properties:
+            description:
+              type: string
+            quantity:
+              type: integer
+            aircraft:
+              type: string
+            notes:
+              type: string
+            emailSubject:
+              type: string
+            sender:
+              type: string
+          required: [description, quantity, aircraft, notes, emailSubject, sender]
+    Email:
+      type: object
+      properties:
+        id:
+          type: integer
+        sender:
+          type: string
+        senderEmail:
+          type: string
+        subject:
+          type: string
+        receivedAt:
+          type: string
+        aiStatus:
+          type: string
+          enum: [ANALYZED, PROCESSING, FAILED]
+        requestType:
+          $ref: "#/components/schemas/RequestType"
+        confidence:
+          type: integer
+        status:
+          type: string
+          enum: [RFQ_CREATED, PENDING_REVIEW, IGNORED]
+      required: [id, sender, senderEmail, subject, receivedAt, aiStatus, requestType, confidence, status]
+    AiReview:
+      type: object
+      properties:
+        id:
+          type: integer
+        rfqId:
+          type: integer
+        rfqNumber:
+          type: string
+        customer:
+          type: string
+        classification:
+          $ref: "#/components/schemas/RequestType"
+        confidence:
+          type: integer
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [NEEDS_REVIEW, APPROVED, CHANGED]
+      required: [id, rfqId, rfqNumber, customer, classification, confidence, reason, status]
+    AiReviewAction:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [REVIEW, APPROVE, CHANGE_CLASSIFICATION]
+        requestType:
+          $ref: "#/components/schemas/RequestType"
+      required: [action]
+    WorkflowStat:
+      type: object
+      properties:
+        name:
+          type: string
+        active:
+          type: integer
+        total:
+          type: integer
+        progress:
+          type: integer
+        tone:
+          type: string
+          enum: [blue, teal, amber, violet]
+      required: [name, active, total, progress, tone]
+    Activity:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        time:
+          type: string
+        tone:
+          type: string
+          enum: [blue, violet, green, amber, slate]
+      required: [id, type, title, description, time, tone]
+    Dashboard:
+      type: object
+      properties:
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/SummaryMetric"
+        recentRfqs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rfq"
+        workflows:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowStat"
+        activities:
+          type: array
+          items:
+            $ref: "#/components/schemas/Activity"
+      required: [metrics, recentRfqs, workflows, activities]
 
