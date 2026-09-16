@@ -12,6 +12,10 @@ tags:
     description: Health operations
   - name: operations
     description: RFQ and operations monitoring
+  - name: ingestion
+    description: Email ingestion and AI processing
+  - name: integrations
+    description: External service connections
 paths:
   /healthz:
     get:
@@ -92,6 +96,78 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Email"
+  /emails/{emailId}:
+    get:
+      operationId: getEmail
+      tags: [ingestion]
+      summary: Get an email and its processing details
+      parameters:
+        - $ref: "#/components/parameters/EmailId"
+      responses:
+        "200":
+          description: Email detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailDetail"
+        "404":
+          description: Email not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /emails/sync:
+    post:
+      operationId: syncEmails
+      tags: [ingestion]
+      summary: Synchronize inbox email
+      responses:
+        "200":
+          description: Synchronization result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailSyncResult"
+  /emails/{emailId}/process:
+    post:
+      operationId: processEmail
+      tags: [ingestion]
+      summary: Process an email through the RFQ analysis pipeline
+      parameters:
+        - $ref: "#/components/parameters/EmailId"
+      responses:
+        "200":
+          description: Processing result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailProcessResult"
+        "404":
+          description: Email not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /email-attachments/{attachmentId}:
+    get:
+      operationId: getEmailAttachment
+      tags: [ingestion]
+      summary: Get attachment metadata
+      parameters:
+        - $ref: "#/components/parameters/AttachmentId"
+      responses:
+        "200":
+          description: Attachment metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailAttachment"
+        "404":
+          description: Attachment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /ai-review:
     get:
       operationId: listAiReviews
@@ -106,6 +182,94 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AiReview"
+  /ai-review/{rfqId}:
+    get:
+      operationId: getAiReview
+      tags: [ingestion]
+      summary: Get AI review detail
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      responses:
+        "200":
+          description: AI review detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiReviewDetail"
+        "404":
+          description: Review item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /ai-review/{rfqId}/approve:
+    post:
+      operationId: approveAiReview
+      tags: [ingestion]
+      summary: Approve an AI result
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      responses:
+        "200":
+          description: Updated AI review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiReviewDetail"
+  /ai-review/{rfqId}/reclassify:
+    post:
+      operationId: reclassifyAiReview
+      tags: [ingestion]
+      summary: Change the request classification
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReclassifyReviewInput"
+      responses:
+        "200":
+          description: Updated AI review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiReviewDetail"
+  /ai-review/{rfqId}/reject:
+    post:
+      operationId: rejectAiReview
+      tags: [ingestion]
+      summary: Reject an AI result as non-RFQ
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      responses:
+        "200":
+          description: Updated AI review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiReviewDetail"
+  /ai-review/{rfqId}/update:
+    post:
+      operationId: updateAiReview
+      tags: [ingestion]
+      summary: Edit extracted RFQ details
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateReviewInput"
+      responses:
+        "200":
+          description: Updated AI review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiReviewDetail"
   /ai-review/{rfqId}/action:
     post:
       operationId: reviewAi
@@ -132,10 +296,70 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /integrations/microsoft/status:
+    get:
+      operationId: getMicrosoftStatus
+      tags: [integrations]
+      summary: Get Microsoft 365 connection status
+      responses:
+        "200":
+          description: Microsoft 365 connection status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MicrosoftIntegrationStatus"
+  /integrations/microsoft/connect:
+    get:
+      operationId: getMicrosoftConnect
+      tags: [integrations]
+      summary: Start Microsoft 365 connection
+      responses:
+        "200":
+          description: Connection status or setup guidance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MicrosoftIntegrationStatus"
+  /integrations/microsoft/callback:
+    get:
+      operationId: microsoftCallback
+      tags: [integrations]
+      summary: Complete Microsoft 365 connection callback
+      responses:
+        "200":
+          description: Connection status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MicrosoftIntegrationStatus"
+  /integrations/microsoft/disconnect:
+    post:
+      operationId: disconnectMicrosoft
+      tags: [integrations]
+      summary: Disconnect Microsoft 365
+      responses:
+        "200":
+          description: Disconnection result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MicrosoftIntegrationStatus"
 components:
   parameters:
     RfqId:
       name: rfqId
+      in: path
+      required: true
+      schema:
+        type: integer
+    EmailId:
+      name: emailId
+      in: path
+      required: true
+      schema:
+        type: integer
+    AttachmentId:
+      name: attachmentId
       in: path
       required: true
       schema:
@@ -254,6 +478,18 @@ components:
               type: string
             sender:
               type: string
+            sourceEmail:
+              oneOf:
+                - $ref: "#/components/schemas/EmailDetail"
+                - type: "null"
+            analysis:
+              oneOf:
+                - $ref: "#/components/schemas/AiAnalysis"
+                - type: "null"
+            reviewHistory:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReviewHistoryEntry"
           required: [description, quantity, aircraft, notes, emailSubject, sender]
     Email:
       type: object
@@ -279,6 +515,190 @@ components:
           type: string
           enum: [RFQ_CREATED, PENDING_REVIEW, IGNORED]
       required: [id, sender, senderEmail, subject, receivedAt, aiStatus, requestType, confidence, status]
+    EmailClassification:
+      type: string
+      enum: [RFQ, NON_RFQ, SUPPLIER_RESPONSE, CUSTOMER_INQUIRY, INTERNAL, UNKNOWN]
+    ProcessingStatus:
+      type: string
+      enum: [NEW, SYNCED, PROCESSING, PROCESSED, REVIEW_REQUIRED, FAILED, IGNORED]
+    AttachmentProcessingStatus:
+      type: string
+      enum: [PENDING, PROCESSING, EXTRACTED, FAILED, UNSUPPORTED]
+    EmailAttachment:
+      type: object
+      properties:
+        id:
+          type: integer
+        emailId:
+          type: integer
+        fileName:
+          type: string
+        contentType:
+          type: string
+        fileSize:
+          type: integer
+        processingStatus:
+          $ref: "#/components/schemas/AttachmentProcessingStatus"
+        extractedText:
+          type: ["string", "null"]
+      required: [id, emailId, fileName, contentType, fileSize, processingStatus, extractedText]
+    AiAnalysis:
+      type: object
+      properties:
+        id:
+          type: integer
+        emailClassification:
+          $ref: "#/components/schemas/EmailClassification"
+        requestType:
+          $ref: "#/components/schemas/RequestType"
+        confidenceScore:
+          type: number
+        reasoningSummary:
+          type: string
+        requiresHumanReview:
+          type: boolean
+        developmentMode:
+          type: boolean
+        extractedData:
+          type: object
+          additionalProperties: true
+      required: [id, emailClassification, requestType, confidenceScore, reasoningSummary, requiresHumanReview, developmentMode, extractedData]
+    ReviewHistoryEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+          enum: [APPROVED, REJECTED, RECLASSIFIED, EDITED]
+        previousClassification:
+          $ref: "#/components/schemas/RequestType"
+        newClassification:
+          $ref: "#/components/schemas/RequestType"
+        notes:
+          type: string
+        createdAt:
+          type: string
+      required: [id, action, previousClassification, newClassification, notes, createdAt]
+    EmailDetail:
+      allOf:
+        - $ref: "#/components/schemas/Email"
+        - type: object
+          properties:
+            recipient:
+              type: string
+            cc:
+              type: string
+            bodyText:
+              type: string
+            bodyHtml:
+              type: string
+            processingStatus:
+              $ref: "#/components/schemas/ProcessingStatus"
+            emailClassification:
+              $ref: "#/components/schemas/EmailClassification"
+            attachments:
+              type: array
+              items:
+                $ref: "#/components/schemas/EmailAttachment"
+            analysis:
+              oneOf:
+                - $ref: "#/components/schemas/AiAnalysis"
+                - type: "null"
+            linkedRfq:
+              oneOf:
+                - $ref: "#/components/schemas/Rfq"
+                - type: "null"
+          required: [recipient, cc, bodyText, bodyHtml, processingStatus, emailClassification, attachments, analysis, linkedRfq]
+    EmailSyncResult:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [MICROSOFT_GRAPH, DEVELOPMENT]
+        synced:
+          type: integer
+        duplicatesSkipped:
+          type: integer
+        failed:
+          type: integer
+        message:
+          type: string
+      required: [mode, synced, duplicatesSkipped, failed, message]
+    EmailProcessResult:
+      type: object
+      properties:
+        email:
+          $ref: "#/components/schemas/EmailDetail"
+        rfqCreated:
+          type: boolean
+        reviewRequired:
+          type: boolean
+        message:
+          type: string
+      required: [email, rfqCreated, reviewRequired, message]
+    AiReviewDetail:
+      allOf:
+        - $ref: "#/components/schemas/AiReview"
+        - type: object
+          properties:
+            emailSubject:
+              type: string
+            createdAt:
+              type: string
+            originalEmail:
+              $ref: "#/components/schemas/EmailDetail"
+            analysis:
+              $ref: "#/components/schemas/AiAnalysis"
+            reviewHistory:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReviewHistoryEntry"
+          required: [emailSubject, createdAt, originalEmail, analysis, reviewHistory]
+    ReclassifyReviewInput:
+      type: object
+      properties:
+        requestType:
+          $ref: "#/components/schemas/RequestType"
+        notes:
+          type: string
+      required: [requestType]
+    UpdateReviewInput:
+      type: object
+      properties:
+        customer:
+          type: string
+        partNumber:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: integer
+        condition:
+          type: string
+        requestType:
+          $ref: "#/components/schemas/RequestType"
+        priority:
+          $ref: "#/components/schemas/Priority"
+        notes:
+          type: string
+      required: []
+    MicrosoftIntegrationStatus:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        mailbox:
+          type: ["string", "null"]
+        lastSync:
+          type: ["string", "null"]
+        message:
+          type: string
+        configured:
+          type: boolean
+        developmentMode:
+          type: boolean
+      required: [connected, mailbox, lastSync, message, configured, developmentMode]
     AiReview:
       type: object
       properties:
@@ -360,5 +780,19 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Activity"
+        emailPipeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineMetric"
       required: [metrics, recentRfqs, workflows, activities]
+    PipelineMetric:
+      type: object
+      properties:
+        label:
+          type: string
+        value:
+          type: integer
+        detail:
+          type: string
+      required: [label, value, detail]
 

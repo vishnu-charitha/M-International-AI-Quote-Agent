@@ -93,15 +93,6 @@ export interface Rfq {
   age: string;
 }
 
-export type RfqDetail = Rfq & {
-  description: string;
-  quantity: number;
-  aircraft: string;
-  notes: string;
-  emailSubject: string;
-  sender: string;
-};
-
 export type EmailAiStatus = typeof EmailAiStatus[keyof typeof EmailAiStatus];
 
 
@@ -132,6 +123,132 @@ export interface Email {
   status: EmailStatus;
 }
 
+export type ProcessingStatus = typeof ProcessingStatus[keyof typeof ProcessingStatus];
+
+
+export const ProcessingStatus = {
+  NEW: 'NEW',
+  SYNCED: 'SYNCED',
+  PROCESSING: 'PROCESSING',
+  PROCESSED: 'PROCESSED',
+  REVIEW_REQUIRED: 'REVIEW_REQUIRED',
+  FAILED: 'FAILED',
+  IGNORED: 'IGNORED',
+} as const;
+
+export type EmailClassification = typeof EmailClassification[keyof typeof EmailClassification];
+
+
+export const EmailClassification = {
+  RFQ: 'RFQ',
+  NON_RFQ: 'NON_RFQ',
+  SUPPLIER_RESPONSE: 'SUPPLIER_RESPONSE',
+  CUSTOMER_INQUIRY: 'CUSTOMER_INQUIRY',
+  INTERNAL: 'INTERNAL',
+  UNKNOWN: 'UNKNOWN',
+} as const;
+
+export type AttachmentProcessingStatus = typeof AttachmentProcessingStatus[keyof typeof AttachmentProcessingStatus];
+
+
+export const AttachmentProcessingStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  EXTRACTED: 'EXTRACTED',
+  FAILED: 'FAILED',
+  UNSUPPORTED: 'UNSUPPORTED',
+} as const;
+
+export interface EmailAttachment {
+  id: number;
+  emailId: number;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  processingStatus: AttachmentProcessingStatus;
+  /** @nullable */
+  extractedText: string | null;
+}
+
+export type AiAnalysisExtractedData = { [key: string]: unknown };
+
+export interface AiAnalysis {
+  id: number;
+  emailClassification: EmailClassification;
+  requestType: RequestType;
+  confidenceScore: number;
+  reasoningSummary: string;
+  requiresHumanReview: boolean;
+  developmentMode: boolean;
+  extractedData: AiAnalysisExtractedData;
+}
+
+export type EmailDetail = Email & ({
+  recipient: string;
+  cc: string;
+  bodyText: string;
+  bodyHtml: string;
+  processingStatus: ProcessingStatus;
+  emailClassification: EmailClassification;
+  attachments: EmailAttachment[];
+  analysis: AiAnalysis | null;
+  linkedRfq: Rfq | null;
+});
+
+export type ReviewHistoryEntryAction = typeof ReviewHistoryEntryAction[keyof typeof ReviewHistoryEntryAction];
+
+
+export const ReviewHistoryEntryAction = {
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  RECLASSIFIED: 'RECLASSIFIED',
+  EDITED: 'EDITED',
+} as const;
+
+export interface ReviewHistoryEntry {
+  id: number;
+  action: ReviewHistoryEntryAction;
+  previousClassification: RequestType;
+  newClassification: RequestType;
+  notes: string;
+  createdAt: string;
+}
+
+export type RfqDetail = Rfq & ({
+  description: string;
+  quantity: number;
+  aircraft: string;
+  notes: string;
+  emailSubject: string;
+  sender: string;
+  sourceEmail?: EmailDetail | null;
+  analysis?: AiAnalysis | null;
+  reviewHistory?: ReviewHistoryEntry[];
+});
+
+export type EmailSyncResultMode = typeof EmailSyncResultMode[keyof typeof EmailSyncResultMode];
+
+
+export const EmailSyncResultMode = {
+  MICROSOFT_GRAPH: 'MICROSOFT_GRAPH',
+  DEVELOPMENT: 'DEVELOPMENT',
+} as const;
+
+export interface EmailSyncResult {
+  mode: EmailSyncResultMode;
+  synced: number;
+  duplicatesSkipped: number;
+  failed: number;
+  message: string;
+}
+
+export interface EmailProcessResult {
+  email: EmailDetail;
+  rfqCreated: boolean;
+  reviewRequired: boolean;
+  message: string;
+}
+
 export type AiReviewStatus = typeof AiReviewStatus[keyof typeof AiReviewStatus];
 
 
@@ -150,6 +267,41 @@ export interface AiReview {
   confidence: number;
   reason: string;
   status: AiReviewStatus;
+}
+
+export type AiReviewDetail = AiReview & {
+  emailSubject: string;
+  createdAt: string;
+  originalEmail: EmailDetail;
+  analysis: AiAnalysis;
+  reviewHistory: ReviewHistoryEntry[];
+};
+
+export interface ReclassifyReviewInput {
+  requestType: RequestType;
+  notes?: string;
+}
+
+export interface UpdateReviewInput {
+  customer?: string;
+  partNumber?: string;
+  description?: string;
+  quantity?: number;
+  condition?: string;
+  requestType?: RequestType;
+  priority?: Priority;
+  notes?: string;
+}
+
+export interface MicrosoftIntegrationStatus {
+  connected: boolean;
+  /** @nullable */
+  mailbox: string | null;
+  /** @nullable */
+  lastSync: string | null;
+  message: string;
+  configured: boolean;
+  developmentMode: boolean;
 }
 
 export type AiReviewActionAction = typeof AiReviewActionAction[keyof typeof AiReviewActionAction];
@@ -204,11 +356,18 @@ export interface Activity {
   tone: ActivityTone;
 }
 
+export interface PipelineMetric {
+  label: string;
+  value: number;
+  detail: string;
+}
+
 export interface Dashboard {
   metrics: SummaryMetric[];
   recentRfqs: Rfq[];
   workflows: WorkflowStat[];
   activities: Activity[];
+  emailPipeline?: PipelineMetric[];
 }
 
 export type SearchParameter = string;

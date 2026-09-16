@@ -49,6 +49,13 @@ export function DashboardPage() {
   if (dashboard.isLoading) return <><PageHeading eyebrow="Operations / overview" title="Good afternoon, Alex" description="Your operational picture for the current shift." /><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><LoadingRows count={4} /></div></>;
   if (dashboard.isError || !dashboard.data) return <><PageHeading eyebrow="Operations / overview" title="Operations dashboard" /><QueryState error onRetry={() => dashboard.refetch()} /></>;
   const data = dashboard.data;
+  const pipeline = data as typeof data & { emailPipeline?: Array<{ label: string; value: number; detail?: string }> };
+  const pipelineStages = pipeline.emailPipeline?.length ? pipeline.emailPipeline : [
+    { label: 'Email intake', value: data.workflows[0]?.total ?? data.metrics[0]?.value ?? 0, detail: 'messages received' },
+    { label: 'AI classified', value: data.workflows[0]?.active ?? data.metrics[1]?.value ?? 0, detail: 'awaiting routing' },
+    { label: 'RFQs created', value: data.recentRfqs.length, detail: 'latest records' },
+    { label: 'Human review', value: data.workflows.find((workflow) => workflow.name.toLowerCase().includes('review'))?.active ?? data.metrics[2]?.value ?? 0, detail: 'operator decisions' },
+  ];
   return <div className="fade-up">
     <PageHeading eyebrow="Operations / overview" title="Good afternoon, Alex" description="Your operational picture for the current shift." action={<Link href="/rfq-inbox" data-testid="link-view-queue" className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-4 py-2.5 text-[11px] font-extrabold text-[hsl(var(--primary-foreground))] shadow-sm transition-transform hover:-translate-y-0.5">Open RFQ queue <ArrowRight size={14} /></Link>} />
     <div className="mb-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -58,6 +65,12 @@ export function DashboardPage() {
         <div className="relative mt-4 flex items-end justify-between"><div className="mono text-[29px] font-medium tracking-[-.08em]">{formatMetric(metric.value)}</div><span className={`mono rounded px-1.5 py-1 text-[9px] font-medium ${metric.trend >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{metric.trend >= 0 ? '+' : ''}{metric.trend}%</span></div>
       </div>)}
     </div>
+    <section className="mb-8">
+      <SectionTitle title="Email → RFQ pipeline" meta="current shift" action={<Link href="/email-inbox" data-testid="link-open-email-pipeline" className="flex items-center gap-1 text-[11px] font-bold text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]">Open email intake <ArrowRight size={13} /></Link>} />
+      <div className="grid gap-px overflow-hidden rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--border))] sm:grid-cols-2 xl:grid-cols-4">
+        {pipelineStages.map((stage, index) => <div key={stage.label} data-testid={`metric-pipeline-${index}`} className="relative bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-3">{stage.label}</div><div className="flex items-end justify-between gap-3"><div className="mono text-[25px] font-medium tracking-[-.08em]">{formatMetric(stage.value)}</div><span className="text-[10px] text-[hsl(var(--muted-foreground))]">{stage.detail}</span></div>{index < pipelineStages.length - 1 && <ArrowRight size={14} className="absolute -right-2 top-1/2 z-10 hidden rounded-full bg-[hsl(var(--accent))] p-0.5 text-[hsl(var(--accent-foreground))] xl:block" />}</div>)}
+      </div>
+    </section>
     <div className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
       <section>
         <SectionTitle title="Recent RFQs" meta={`${data.recentRfqs.length} latest`} action={<Link href="/rfq-inbox" data-testid="link-all-rfqs" className="flex items-center gap-1 text-[11px] font-bold text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]">View all <ArrowRight size={13} /></Link>} />

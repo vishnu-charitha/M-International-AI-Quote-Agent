@@ -3,3 +3,6 @@ export * from "./customers";
 export * from "./rfqs";
 export * from "./emails";
 export * from "./ai-analyses";
+export * from "./email-attachments";
+export * from "./rfq-items";
+export * from "./ai-review-history";

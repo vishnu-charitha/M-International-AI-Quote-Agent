@@ -1,0 +1,1214 @@
+# M International — AI Quote Agent
+
+## Phase 2: Complete Real Email → AI → RFQ → Human Review
+
+You are continuing development of the existing **M International — AI Quote Agent** application.
+
+The project already contains a Phase 1 foundation with:
+
+* React + Vite frontend
+* Express backend
+* PostgreSQL database
+* Drizzle ORM
+* Existing OpenAPI/API architecture
+* Dashboard
+* RFQ Inbox
+* RFQ Detail pages
+* Email Inbox using mock data
+* AI Review Queue
+* API-backed state updates
+* Existing Users, Customers, RFQs, Emails, and AI Analyses database foundation
+
+## IMPORTANT
+
+**Do not rebuild the application from scratch.**
+
+**Do not replace the existing frontend or backend architecture unnecessarily.**
+
+**Do not delete existing working features or data.**
+
+Inspect the current codebase first, understand the existing schema and API patterns, and extend them safely.
+
+The goal of this phase is to make the existing application a **real working email-to-RFQ automation system**, not just a UI demonstration.
+
+---
+
+# PRIMARY OBJECTIVE
+
+Implement this complete workflow:
+
+```text
+Customer sends RFQ email
+        ↓
+Microsoft 365 / Outlook
+        ↓
+Email synchronization
+        ↓
+Email stored in PostgreSQL
+        ↓
+Attachments downloaded and processed
+        ↓
+AI analyzes email + attachment text
+        ↓
+AI extracts RFQ information
+        ↓
+AI classifies request type
+        ↓
+Confidence score calculated
+        ↓
+RFQ created automatically
+        ↓
+High confidence → Ready for Processing
+        ↓
+Low confidence → Human Review Queue
+```
+
+The system must support development mode with mock email and mock AI data when external credentials are not configured.
+
+---
+
+# PART 1 — INSPECT THE EXISTING PROJECT FIRST
+
+Before changing code:
+
+1. Inspect the frontend structure.
+2. Inspect the backend structure.
+3. Inspect the existing database schema.
+4. Inspect the existing RFQ API routes.
+5. Inspect the existing email API routes.
+6. Inspect the existing AI Review API routes.
+7. Inspect the existing frontend API hooks.
+8. Inspect the existing environment configuration.
+9. Inspect how the current mock data is generated.
+10. Inspect how the existing database migrations are managed.
+
+Then provide a short implementation plan and begin extending the existing project.
+
+Do not blindly overwrite files.
+
+---
+
+# PART 2 — MICROSOFT 365 / OUTLOOK INTEGRATION
+
+Implement Microsoft Graph API integration.
+
+The integration should support connecting a Microsoft 365 mailbox.
+
+Suggested architecture:
+
+```text
+server/
+  services/
+    microsoftGraph.ts
+    emailIngestionService.ts
+    attachmentProcessor.ts
+    customerMatchingService.ts
+    rfqCreationService.ts
+    ai/
+      rfqAnalyzer.ts
+      emailClassifier.ts
+```
+
+Use the existing project architecture if it has equivalent folders.
+
+---
+
+## Environment Variables
+
+Add or extend `.env.example`:
+
+```env
+MICROSOFT_CLIENT_ID=
+MICROSOFT_CLIENT_SECRET=
+MICROSOFT_TENANT_ID=
+MICROSOFT_REDIRECT_URI=
+MICROSOFT_MAILBOX=
+```
+
+Use environment variables only.
+
+Never hardcode credentials.
+
+Never expose secrets in API responses or frontend code.
+
+---
+
+## Microsoft OAuth
+
+Implement Microsoft OAuth authentication.
+
+The user should be able to access:
+
+```text
+Settings
+   ↓
+Integrations
+   ↓
+Microsoft 365
+   ↓
+Connect Outlook
+```
+
+The integration UI should show:
+
+### Disconnected
+
+```text
+Microsoft 365
+
+Status: Not Connected
+
+[ Connect Microsoft 365 ]
+```
+
+### Connected
+
+```text
+Microsoft 365
+
+Status: Connected
+
+Mailbox: sales@company.com
+
+Last Sync: [date/time]
+
+[ Sync Now ]
+
+[ Disconnect ]
+```
+
+If Microsoft credentials are missing, show a clear configuration message instead of crashing.
+
+---
+
+## Required API Routes
+
+Follow the existing Express and OpenAPI patterns.
+
+Implement:
+
+```text
+GET  /api/integrations/microsoft/status
+GET  /api/integrations/microsoft/connect
+GET  /api/integrations/microsoft/callback
+POST /api/integrations/microsoft/disconnect
+POST /api/emails/sync
+```
+
+Also implement:
+
+```text
+GET  /api/emails/:emailId
+POST /api/emails/:emailId/process
+```
+
+If equivalent routes already exist, extend them rather than duplicating them.
+
+---
+
+# PART 3 — EMAIL SYNCHRONIZATION
+
+Implement an email synchronization service for the configured Microsoft 365 mailbox.
+
+Initially synchronize the Inbox.
+
+Retrieve and store:
+
+* Microsoft Message ID
+* Internet Message ID
+* Conversation ID
+* Subject
+* Sender name
+* Sender email
+* Recipients
+* CC recipients
+* Email body text
+* HTML body
+* Received date
+* Attachments
+* Processing status
+
+---
+
+## Duplicate Prevention
+
+Do not import the same email more than once.
+
+Use Microsoft Message ID and/or Internet Message ID as unique identifiers.
+
+If an email already exists:
+
+```text
+Skip duplicate
+```
+
+Do not create duplicate RFQs.
+
+---
+
+## Email Processing Status
+
+Support these statuses:
+
+```text
+NEW
+SYNCED
+PROCESSING
+PROCESSED
+REVIEW_REQUIRED
+FAILED
+IGNORED
+```
+
+---
+
+# PART 4 — DATABASE EXPANSION
+
+Extend the existing PostgreSQL / Drizzle schema safely.
+
+Do not delete existing tables.
+
+Create migrations using the existing project conventions.
+
+---
+
+## Emails Table
+
+Ensure the Emails table supports:
+
+```text
+id
+microsoftMessageId
+internetMessageId
+conversationId
+
+senderName
+senderEmail
+recipientEmails
+ccEmails
+
+subject
+bodyText
+bodyHtml
+
+receivedAt
+
+emailType
+processingStatus
+
+aiProcessed
+rfqId
+
+createdAt
+updatedAt
+```
+
+Use appropriate PostgreSQL types and existing project conventions.
+
+---
+
+## Email Attachments Table
+
+Create or extend:
+
+```text
+email_attachments
+```
+
+Fields:
+
+```text
+id
+emailId
+
+fileName
+contentType
+fileSize
+
+storagePath
+extractedText
+
+processingStatus
+
+createdAt
+```
+
+---
+
+## RFQ Items Table
+
+Ensure the system supports multiple parts in one RFQ.
+
+Create or extend:
+
+```text
+rfq_items
+```
+
+Fields:
+
+```text
+id
+rfqId
+
+partNumber
+description
+quantity
+
+condition
+requestedCondition
+
+certificationRequirements
+
+createdAt
+updatedAt
+```
+
+One email may create one RFQ containing multiple RFQ items.
+
+---
+
+## AI Analyses Table
+
+Extend the existing AI analyses architecture.
+
+Store:
+
+```text
+id
+
+emailId
+rfqId
+
+analysisStatus
+
+emailClassification
+requestType
+
+confidenceScore
+
+extractedData
+reasoningSummary
+
+requiresHumanReview
+
+createdAt
+updatedAt
+```
+
+Do not store private AI chain-of-thought.
+
+Store only a short reasoning summary explaining the classification.
+
+Example:
+
+```text
+Email contains a clear aviation part number, quantity, and request for quotation. Classification confidence is high.
+```
+
+---
+
+## AI Review History
+
+Create or extend:
+
+```text
+ai_review_history
+```
+
+Fields:
+
+```text
+id
+
+aiAnalysisId
+rfqId
+
+action
+
+previousClassification
+newClassification
+
+reviewerId
+notes
+
+createdAt
+```
+
+Actions:
+
+```text
+APPROVED
+REJECTED
+RECLASSIFIED
+EDITED
+```
+
+---
+
+# PART 5 — AI RFQ ANALYSIS SERVICE
+
+Implement a real AI processing service.
+
+Use the existing AI integration available in the project if configured.
+
+Design the service so the AI provider can be replaced later.
+
+Suggested architecture:
+
+```text
+ai/
+  rfqAnalyzer.ts
+  emailClassifier.ts
+  aviationExtractor.ts
+```
+
+---
+
+## AI Input
+
+The AI receives:
+
+```text
+Email Subject
+Email Body
+Extracted Attachment Text
+```
+
+The AI must analyze the complete customer request.
+
+---
+
+## Email Classification
+
+Classify emails into:
+
+```text
+RFQ
+NON_RFQ
+SUPPLIER_RESPONSE
+CUSTOMER_INQUIRY
+INTERNAL
+UNKNOWN
+```
+
+---
+
+## RFQ Request Type Classification
+
+For RFQ emails, classify into:
+
+```text
+PARTS_PURCHASE
+PARTS_EXCHANGE
+REPAIR
+OVERHAUL
+UNKNOWN
+```
+
+Examples:
+
+### Parts Purchase
+
+```text
+Please quote 2 units of PN ABC-123.
+```
+
+### Parts Exchange
+
+```text
+Please quote an exchange unit. Core available.
+```
+
+### Repair
+
+```text
+Please provide repair pricing and turnaround time.
+```
+
+### Overhaul
+
+```text
+Please quote overhaul for this unit.
+```
+
+---
+
+# PART 6 — STRUCTURED AI EXTRACTION
+
+The AI must return structured JSON validated against a schema.
+
+Use strict validation with the existing backend validation approach.
+
+Example response:
+
+```json
+{
+  "emailClassification": "RFQ",
+  "requestType": "PARTS_PURCHASE",
+  "confidenceScore": 0.96,
+
+  "customer": {
+    "name": "John Smith",
+    "company": "ABC Airlines",
+    "email": "john@abcairlines.com"
+  },
+
+  "items": [
+    {
+      "partNumber": "1234-AB",
+      "description": "Hydraulic Pump",
+      "quantity": 2,
+      "condition": "Serviceable",
+      "requestedCondition": "Serviceable"
+    }
+  ],
+
+  "requirements": {
+    "certification": [
+      "FAA 8130-3"
+    ],
+    "deliveryRequirement": "ASAP",
+    "urgency": "HIGH"
+  },
+
+  "summary": "Customer requests quotation for two serviceable hydraulic pumps.",
+
+  "requiresHumanReview": false,
+
+  "reasoningSummary": "Clear RFQ language with identifiable part number and quantity."
+}
+```
+
+Do not allow malformed AI output to crash the application.
+
+If validation fails, mark the analysis as failed or review-required and preserve the original email.
+
+---
+
+# PART 7 — MULTIPLE PART SUPPORT
+
+Support emails containing multiple part numbers.
+
+Example:
+
+```text
+Please quote:
+
+PN: ABC-100
+Qty: 2
+
+PN: XYZ-500
+Qty: 4
+```
+
+Create:
+
+```text
+1 RFQ
+   ↓
+Multiple RFQ Items
+```
+
+Do not create separate duplicate RFQs for every item unless the business rules explicitly require it.
+
+---
+
+# PART 8 — CONFIDENCE-BASED ROUTING
+
+Implement confidence scoring from:
+
+```text
+0.00 to 1.00
+```
+
+Display it in the UI as a percentage.
+
+---
+
+## Confidence Rules
+
+### High Confidence
+
+```text
+>= 0.85
+```
+
+Action:
+
+```text
+Automatically create RFQ
+Status: READY_FOR_PROCESSING
+```
+
+### Medium Confidence
+
+```text
+0.60 to 0.84
+```
+
+Action:
+
+```text
+Create RFQ
+Send to AI Review Queue
+```
+
+### Low Confidence
+
+```text
+< 0.60
+```
+
+Action:
+
+```text
+Create or preserve the analysis
+Send to AI Review Queue
+Do not automatically finalize the workflow
+```
+
+---
+
+## Human Review Conditions
+
+Require human review when:
+
+* Part number is missing
+* Quantity is missing
+* Request type is unclear
+* Confidence is below threshold
+* Multiple possible classifications exist
+* Email is ambiguous
+* Attachment information conflicts with the email
+* AI output fails schema validation
+
+---
+
+# PART 9 — AUTOMATIC RFQ CREATION
+
+After successful AI processing:
+
+```text
+Email
+   ↓
+AI Analysis
+   ↓
+RFQ Created
+```
+
+The RFQ should include:
+
+* RFQ number
+* Customer
+* Source email
+* Request type
+* Priority
+* Status
+* AI confidence
+* AI analysis
+* RFQ items
+
+---
+
+## RFQ Number
+
+Generate professional user-facing RFQ numbers.
+
+Example:
+
+```text
+MI-RFQ-2026-00001
+```
+
+Do not use random UUIDs as the user-facing RFQ number.
+
+---
+
+## RFQ Source
+
+Support:
+
+```text
+EMAIL
+WEBSITE
+MANUAL
+```
+
+For this phase, automatically ingested RFQs should use:
+
+```text
+EMAIL
+```
+
+---
+
+## Customer Matching
+
+Match customers using:
+
+* Sender email
+* Company domain
+* Company name
+
+If an existing customer is found, link the email and RFQ to that customer.
+
+If not found, create a new customer record marked:
+
+```text
+UNVERIFIED
+```
+
+Do not overwrite existing customer records without review.
+
+---
+
+# PART 10 — AI REVIEW QUEUE
+
+Upgrade the existing AI Review Queue.
+
+Display:
+
+| Field         | Description            |
+| ------------- | ---------------------- |
+| RFQ Number    | Generated RFQ ID       |
+| Customer      | Customer/company       |
+| Email Subject | Original subject       |
+| Request Type  | AI classification      |
+| Confidence    | AI confidence          |
+| Reason        | Why review is required |
+| Created       | Date/time              |
+
+---
+
+## AI Review Detail
+
+Show:
+
+### Original Email
+
+* Sender
+* Subject
+* Date
+* Email body
+* Attachments
+
+### AI Analysis
+
+* Classification
+* Request type
+* Extracted parts
+* Quantity
+* Condition
+* Certification
+* Urgency
+* Confidence
+* Reasoning summary
+
+---
+
+## Review Actions
+
+Implement:
+
+```text
+Approve AI Result
+Edit RFQ Details
+Change Classification
+Reject / Mark Non-RFQ
+```
+
+---
+
+## Approve Workflow
+
+```text
+AI Review
+   ↓
+Approve
+   ↓
+RFQ Status Updated
+   ↓
+READY_FOR_PROCESSING
+```
+
+---
+
+## Edit Workflow
+
+Allow the reviewer to edit:
+
+* Customer
+* Part number
+* Description
+* Quantity
+* Condition
+* Request type
+* Priority
+
+After saving:
+
+```text
+AI Review History created
+```
+
+Do not lose the original AI result.
+
+---
+
+# PART 11 — EMAIL INBOX UPGRADE
+
+Upgrade the existing Email Inbox.
+
+Add tabs:
+
+```text
+All
+New
+Processing
+Processed
+Review Required
+Failed
+```
+
+Display:
+
+* Sender
+* Company
+* Subject
+* Classification
+* Processing status
+* AI confidence
+* Received time
+
+---
+
+## Email Detail Page
+
+Show:
+
+```text
+Email Information
+Sender
+Recipient
+CC
+Subject
+Received Time
+```
+
+Then:
+
+```text
+Email Content
+```
+
+Then:
+
+```text
+Attachments
+```
+
+Then:
+
+```text
+AI Analysis
+```
+
+Then:
+
+```text
+Linked RFQ
+```
+
+If AI has not processed the email:
+
+```text
+[ Process with AI ]
+```
+
+---
+
+# PART 12 — ATTACHMENT PROCESSING
+
+Implement attachment processing for:
+
+```text
+PDF
+DOCX
+XLSX
+CSV
+TXT
+```
+
+Workflow:
+
+```text
+Email Attachment
+       ↓
+Download
+       ↓
+Store Metadata
+       ↓
+Extract Text
+       ↓
+Combine with Email Body
+       ↓
+Send to AI
+```
+
+The original email must remain available even if attachment processing fails.
+
+---
+
+# PART 13 — DEVELOPMENT FALLBACK MODE
+
+The application must work without Microsoft credentials.
+
+If Microsoft integration is not configured, show:
+
+```text
+Microsoft 365 integration is not configured.
+
+Add Microsoft credentials in environment variables to connect a real mailbox.
+```
+
+Do not crash.
+
+If the AI provider is not configured, use a clearly labeled mock AI provider.
+
+Show:
+
+```text
+Development AI Mode
+```
+
+Do not pretend mock analysis is a real AI response.
+
+---
+
+# PART 14 — DASHBOARD UPDATES
+
+Add real Phase 2 metrics:
+
+* Emails Synced Today
+* Emails Awaiting AI Processing
+* RFQs Created by AI
+* AI Reviews Required
+* Average AI Confidence
+
+Add a pipeline widget:
+
+```text
+Emails Received
+       ↓
+AI Processing
+       ↓
+RFQs Created
+       ↓
+Review Required
+       ↓
+Ready for Operations
+```
+
+Use real database counts, not hardcoded numbers.
+
+---
+
+# PART 15 — SETTINGS → INTEGRATIONS
+
+Create or extend:
+
+```text
+Settings
+   ↓
+Integrations
+```
+
+Add:
+
+### Microsoft 365
+
+* Connection status
+* Mailbox
+* Last sync time
+* Connect
+* Sync Now
+* Disconnect
+
+### AI Provider
+
+* Configured / Development Mode
+* Provider name
+* Model name
+
+Never expose API keys.
+
+---
+
+# PART 16 — ERROR HANDLING
+
+Every workflow must have:
+
+* Loading state
+* Empty state
+* Error state
+* Retry action
+
+If email sync fails:
+
+```text
+Unable to sync emails.
+
+[ Retry Sync ]
+```
+
+If AI processing fails:
+
+```text
+Email remains stored
+
+Processing Status:
+FAILED
+
+[ Retry Processing ]
+```
+
+Never delete the original email because AI processing failed.
+
+---
+
+# PART 17 — REALISTIC TEST DATA
+
+Create realistic aviation mock data for development.
+
+Include:
+
+### Parts Purchase
+
+```text
+PN: 1234-AB
+Quantity: 2
+Condition: Serviceable
+```
+
+### Exchange
+
+```text
+PN: 5678-XY
+Quantity: 1
+Core Available: Yes
+```
+
+### Repair
+
+```text
+PN: 9000-HYD
+Issue: Hydraulic failure
+```
+
+### Overhaul
+
+```text
+PN: ENG-445
+Request: Complete overhaul
+```
+
+Also include ambiguous emails requiring human review.
+
+Example:
+
+```text
+Need quote for the part discussed earlier.
+```
+
+---
+
+# PART 18 — VERIFICATION REQUIREMENTS
+
+Before declaring the phase complete, verify:
+
+## Backend
+
+* Health endpoint
+* Dashboard endpoint
+* Email listing
+* Email detail
+* Email synchronization
+* Email processing
+* AI analysis
+* RFQ creation
+* AI review actions
+* Microsoft status endpoint
+
+## Database
+
+* Emails saved correctly
+* Duplicate emails prevented
+* Attachments linked correctly
+* AI analyses saved
+* RFQs created correctly
+* RFQ items created
+* Review history saved
+
+## Frontend
+
+* Dashboard loads
+* Email Inbox loads
+* Email Detail loads
+* AI Review Queue loads
+* AI Review Detail loads
+* RFQ Detail loads
+* Settings → Integrations loads
+
+## Development Mode
+
+Verify that the application still works without Microsoft or AI credentials.
+
+## Typecheck and Runtime
+
+Run the workspace typecheck and start both services.
+
+Fix all runtime errors before declaring completion.
+
+---
+
+# IMPORTANT SCOPE LIMIT
+
+Do not implement Phase 3 supplier sourcing, Phase 4 pricing, Phase 5 quote generation, compliance, orders, fulfillment, or shipping yet.
+
+Focus only on:
+
+# EMAIL → AI → RFQ → HUMAN REVIEW
+
+---
+
+# REQUIRED FINAL REPORT
+
+After implementation, provide:
+
+1. What was implemented
+2. Database changes
+3. New API routes
+4. Environment variables
+5. What works in development mode
+6. What requires real Microsoft credentials
+7. What requires a real AI provider
+8. Testing results
+9. Any incomplete functionality
+10. Any production blockers
+
+Clearly separate:
+
+```text
+IMPLEMENTED
+```
+
+from:
+
+```text
+REQUIRES REAL CREDENTIALS / PRODUCTION CONFIGURATION
+```
+
+Do not claim a feature is complete unless it actually works.
+
+Start by inspecting the existing Phase 1 project and extending it carefully.

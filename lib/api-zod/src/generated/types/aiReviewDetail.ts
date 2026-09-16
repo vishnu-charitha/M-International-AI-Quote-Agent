@@ -6,18 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AiAnalysis } from './aiAnalysis';
+import type { AiReview } from './aiReview';
 import type { EmailDetail } from './emailDetail';
 import type { ReviewHistoryEntry } from './reviewHistoryEntry';
-import type { Rfq } from './rfq';
 
-export type RfqDetail = Rfq & ({
-  description: string;
-  quantity: number;
-  aircraft: string;
-  notes: string;
+export type AiReviewDetail = AiReview & {
   emailSubject: string;
-  sender: string;
-  sourceEmail?: EmailDetail | null;
-  analysis?: AiAnalysis | null;
-  reviewHistory?: ReviewHistoryEntry[];
-});
+  createdAt: string;
+  originalEmail: EmailDetail;
+  analysis: AiAnalysis;
+  reviewHistory: ReviewHistoryEntry[];
+};

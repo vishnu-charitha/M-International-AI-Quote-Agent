@@ -22,13 +22,21 @@ import type {
 import type {
   AiReview,
   AiReviewAction,
+  AiReviewDetail,
   Dashboard,
   Email,
+  EmailAttachment,
+  EmailDetail,
+  EmailProcessResult,
+  EmailSyncResult,
   ErrorResponse,
   HealthStatus,
   ListRfqsParams,
+  MicrosoftIntegrationStatus,
+  ReclassifyReviewInput,
   Rfq,
-  RfqDetail
+  RfqDetail,
+  UpdateReviewInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -451,6 +459,302 @@ export function useListEmails<TData = Awaited<ReturnType<typeof listEmails>>, TE
 
 
 
+export const getGetEmailUrl = (emailId: number,) => {
+
+
+
+
+  return `/api/emails/${emailId}`
+}
+
+/**
+ * @summary Get an email and its processing details
+ */
+export const getEmail = async (emailId: number, options?: Parameters<typeof customFetch>[1]): Promise<EmailDetail> => {
+
+  return customFetch<EmailDetail>(getGetEmailUrl(emailId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmailQueryKey = (emailId: number,) => {
+    return [
+    `/api/emails/${emailId}`
+    ] as const;
+    }
+
+
+export const getGetEmailQueryOptions = <TData = Awaited<ReturnType<typeof getEmail>>, TError = ErrorType<ErrorResponse>>(emailId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmailQueryKey(emailId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmail>>> = ({ signal }) => getEmail(emailId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: emailId !== null && emailId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmail>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmailQueryResult = NonNullable<Awaited<ReturnType<typeof getEmail>>>
+export type GetEmailQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get an email and its processing details
+ */
+
+export function useGetEmail<TData = Awaited<ReturnType<typeof getEmail>>, TError = ErrorType<ErrorResponse>>(
+ emailId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmailQueryOptions(emailId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSyncEmailsUrl = () => {
+
+
+
+
+  return `/api/emails/sync`
+}
+
+/**
+ * @summary Synchronize inbox email
+ */
+export const syncEmails = async ( options?: Parameters<typeof customFetch>[1]): Promise<EmailSyncResult> => {
+
+  return customFetch<EmailSyncResult>(getSyncEmailsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSyncEmailsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncEmails>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof syncEmails>>, TError,void, TContext> => {
+
+const mutationKey = ['syncEmails'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof syncEmails>>, void> = () => {
+
+
+          return  syncEmails(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SyncEmailsMutationResult = NonNullable<Awaited<ReturnType<typeof syncEmails>>>
+
+    export type SyncEmailsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Synchronize inbox email
+ */
+export const useSyncEmails = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof syncEmails>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof syncEmails>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getSyncEmailsMutationOptions(options));
+    }
+
+export const getProcessEmailUrl = (emailId: number,) => {
+
+
+
+
+  return `/api/emails/${emailId}/process`
+}
+
+/**
+ * @summary Process an email through the RFQ analysis pipeline
+ */
+export const processEmail = async (emailId: number, options?: Parameters<typeof customFetch>[1]): Promise<EmailProcessResult> => {
+
+  return customFetch<EmailProcessResult>(getProcessEmailUrl(emailId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getProcessEmailMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof processEmail>>, TError,{emailId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof processEmail>>, TError,{emailId: number}, TContext> => {
+
+const mutationKey = ['processEmail'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof processEmail>>, {emailId: number}> = (props) => {
+          const {emailId} = props ?? {};
+
+          return  processEmail(emailId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProcessEmailMutationResult = NonNullable<Awaited<ReturnType<typeof processEmail>>>
+
+    export type ProcessEmailMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Process an email through the RFQ analysis pipeline
+ */
+export const useProcessEmail = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof processEmail>>, TError,{emailId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof processEmail>>,
+        TError,
+        {emailId: number},
+        TContext
+      > => {
+      return useMutation(getProcessEmailMutationOptions(options));
+    }
+
+export const getGetEmailAttachmentUrl = (attachmentId: number,) => {
+
+
+
+
+  return `/api/email-attachments/${attachmentId}`
+}
+
+/**
+ * @summary Get attachment metadata
+ */
+export const getEmailAttachment = async (attachmentId: number, options?: Parameters<typeof customFetch>[1]): Promise<EmailAttachment> => {
+
+  return customFetch<EmailAttachment>(getGetEmailAttachmentUrl(attachmentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmailAttachmentQueryKey = (attachmentId: number,) => {
+    return [
+    `/api/email-attachments/${attachmentId}`
+    ] as const;
+    }
+
+
+export const getGetEmailAttachmentQueryOptions = <TData = Awaited<ReturnType<typeof getEmailAttachment>>, TError = ErrorType<ErrorResponse>>(attachmentId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailAttachment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmailAttachmentQueryKey(attachmentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmailAttachment>>> = ({ signal }) => getEmailAttachment(attachmentId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: attachmentId !== null && attachmentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmailAttachment>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmailAttachmentQueryResult = NonNullable<Awaited<ReturnType<typeof getEmailAttachment>>>
+export type GetEmailAttachmentQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get attachment metadata
+ */
+
+export function useGetEmailAttachment<TData = Awaited<ReturnType<typeof getEmailAttachment>>, TError = ErrorType<ErrorResponse>>(
+ attachmentId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailAttachment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmailAttachmentQueryOptions(attachmentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getListAiReviewsUrl = () => {
 
 
@@ -528,6 +832,369 @@ export function useListAiReviews<TData = Awaited<ReturnType<typeof listAiReviews
 
 
 
+export const getGetAiReviewUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/ai-review/${rfqId}`
+}
+
+/**
+ * @summary Get AI review detail
+ */
+export const getAiReview = async (rfqId: number, options?: Parameters<typeof customFetch>[1]): Promise<AiReviewDetail> => {
+
+  return customFetch<AiReviewDetail>(getGetAiReviewUrl(rfqId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAiReviewQueryKey = (rfqId: number,) => {
+    return [
+    `/api/ai-review/${rfqId}`
+    ] as const;
+    }
+
+
+export const getGetAiReviewQueryOptions = <TData = Awaited<ReturnType<typeof getAiReview>>, TError = ErrorType<ErrorResponse>>(rfqId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAiReview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAiReviewQueryKey(rfqId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAiReview>>> = ({ signal }) => getAiReview(rfqId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: rfqId !== null && rfqId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAiReview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAiReviewQueryResult = NonNullable<Awaited<ReturnType<typeof getAiReview>>>
+export type GetAiReviewQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get AI review detail
+ */
+
+export function useGetAiReview<TData = Awaited<ReturnType<typeof getAiReview>>, TError = ErrorType<ErrorResponse>>(
+ rfqId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAiReview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAiReviewQueryOptions(rfqId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getApproveAiReviewUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/ai-review/${rfqId}/approve`
+}
+
+/**
+ * @summary Approve an AI result
+ */
+export const approveAiReview = async (rfqId: number, options?: Parameters<typeof customFetch>[1]): Promise<AiReviewDetail> => {
+
+  return customFetch<AiReviewDetail>(getApproveAiReviewUrl(rfqId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getApproveAiReviewMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveAiReview>>, TError,{rfqId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveAiReview>>, TError,{rfqId: number}, TContext> => {
+
+const mutationKey = ['approveAiReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveAiReview>>, {rfqId: number}> = (props) => {
+          const {rfqId} = props ?? {};
+
+          return  approveAiReview(rfqId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveAiReviewMutationResult = NonNullable<Awaited<ReturnType<typeof approveAiReview>>>
+
+    export type ApproveAiReviewMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Approve an AI result
+ */
+export const useApproveAiReview = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveAiReview>>, TError,{rfqId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveAiReview>>,
+        TError,
+        {rfqId: number},
+        TContext
+      > => {
+      return useMutation(getApproveAiReviewMutationOptions(options));
+    }
+
+export const getReclassifyAiReviewUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/ai-review/${rfqId}/reclassify`
+}
+
+/**
+ * @summary Change the request classification
+ */
+export const reclassifyAiReview = async (rfqId: number,
+    reclassifyReviewInput: ReclassifyReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<AiReviewDetail> => {
+
+  return customFetch<AiReviewDetail>(getReclassifyAiReviewUrl(rfqId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reclassifyReviewInput)
+  }
+);}
+
+
+
+
+
+export const getReclassifyAiReviewMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reclassifyAiReview>>, TError,{rfqId: number;data: BodyType<ReclassifyReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reclassifyAiReview>>, TError,{rfqId: number;data: BodyType<ReclassifyReviewInput>}, TContext> => {
+
+const mutationKey = ['reclassifyAiReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reclassifyAiReview>>, {rfqId: number;data: BodyType<ReclassifyReviewInput>}> = (props) => {
+          const {rfqId,data} = props ?? {};
+
+          return  reclassifyAiReview(rfqId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReclassifyAiReviewMutationResult = NonNullable<Awaited<ReturnType<typeof reclassifyAiReview>>>
+    export type ReclassifyAiReviewMutationBody = BodyType<ReclassifyReviewInput>
+    export type ReclassifyAiReviewMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Change the request classification
+ */
+export const useReclassifyAiReview = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reclassifyAiReview>>, TError,{rfqId: number;data: BodyType<ReclassifyReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reclassifyAiReview>>,
+        TError,
+        {rfqId: number;data: BodyType<ReclassifyReviewInput>},
+        TContext
+      > => {
+      return useMutation(getReclassifyAiReviewMutationOptions(options));
+    }
+
+export const getRejectAiReviewUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/ai-review/${rfqId}/reject`
+}
+
+/**
+ * @summary Reject an AI result as non-RFQ
+ */
+export const rejectAiReview = async (rfqId: number, options?: Parameters<typeof customFetch>[1]): Promise<AiReviewDetail> => {
+
+  return customFetch<AiReviewDetail>(getRejectAiReviewUrl(rfqId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRejectAiReviewMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectAiReview>>, TError,{rfqId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectAiReview>>, TError,{rfqId: number}, TContext> => {
+
+const mutationKey = ['rejectAiReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectAiReview>>, {rfqId: number}> = (props) => {
+          const {rfqId} = props ?? {};
+
+          return  rejectAiReview(rfqId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectAiReviewMutationResult = NonNullable<Awaited<ReturnType<typeof rejectAiReview>>>
+
+    export type RejectAiReviewMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Reject an AI result as non-RFQ
+ */
+export const useRejectAiReview = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectAiReview>>, TError,{rfqId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rejectAiReview>>,
+        TError,
+        {rfqId: number},
+        TContext
+      > => {
+      return useMutation(getRejectAiReviewMutationOptions(options));
+    }
+
+export const getUpdateAiReviewUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/ai-review/${rfqId}/update`
+}
+
+/**
+ * @summary Edit extracted RFQ details
+ */
+export const updateAiReview = async (rfqId: number,
+    updateReviewInput: UpdateReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<AiReviewDetail> => {
+
+  return customFetch<AiReviewDetail>(getUpdateAiReviewUrl(rfqId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateReviewInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAiReviewMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAiReview>>, TError,{rfqId: number;data: BodyType<UpdateReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAiReview>>, TError,{rfqId: number;data: BodyType<UpdateReviewInput>}, TContext> => {
+
+const mutationKey = ['updateAiReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAiReview>>, {rfqId: number;data: BodyType<UpdateReviewInput>}> = (props) => {
+          const {rfqId,data} = props ?? {};
+
+          return  updateAiReview(rfqId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAiReviewMutationResult = NonNullable<Awaited<ReturnType<typeof updateAiReview>>>
+    export type UpdateAiReviewMutationBody = BodyType<UpdateReviewInput>
+    export type UpdateAiReviewMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Edit extracted RFQ details
+ */
+export const useUpdateAiReview = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAiReview>>, TError,{rfqId: number;data: BodyType<UpdateReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAiReview>>,
+        TError,
+        {rfqId: number;data: BodyType<UpdateReviewInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAiReviewMutationOptions(options));
+    }
+
 export const getReviewAiUrl = (rfqId: number,) => {
 
 
@@ -598,5 +1265,307 @@ export const useReviewAi = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getReviewAiMutationOptions(options));
+    }
+
+export const getGetMicrosoftStatusUrl = () => {
+
+
+
+
+  return `/api/integrations/microsoft/status`
+}
+
+/**
+ * @summary Get Microsoft 365 connection status
+ */
+export const getMicrosoftStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<MicrosoftIntegrationStatus> => {
+
+  return customFetch<MicrosoftIntegrationStatus>(getGetMicrosoftStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMicrosoftStatusQueryKey = () => {
+    return [
+    `/api/integrations/microsoft/status`
+    ] as const;
+    }
+
+
+export const getGetMicrosoftStatusQueryOptions = <TData = Awaited<ReturnType<typeof getMicrosoftStatus>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMicrosoftStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMicrosoftStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMicrosoftStatus>>> = ({ signal }) => getMicrosoftStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMicrosoftStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMicrosoftStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getMicrosoftStatus>>>
+export type GetMicrosoftStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get Microsoft 365 connection status
+ */
+
+export function useGetMicrosoftStatus<TData = Awaited<ReturnType<typeof getMicrosoftStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMicrosoftStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMicrosoftStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetMicrosoftConnectUrl = () => {
+
+
+
+
+  return `/api/integrations/microsoft/connect`
+}
+
+/**
+ * @summary Start Microsoft 365 connection
+ */
+export const getMicrosoftConnect = async ( options?: Parameters<typeof customFetch>[1]): Promise<MicrosoftIntegrationStatus> => {
+
+  return customFetch<MicrosoftIntegrationStatus>(getGetMicrosoftConnectUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMicrosoftConnectQueryKey = () => {
+    return [
+    `/api/integrations/microsoft/connect`
+    ] as const;
+    }
+
+
+export const getGetMicrosoftConnectQueryOptions = <TData = Awaited<ReturnType<typeof getMicrosoftConnect>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMicrosoftConnect>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMicrosoftConnectQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMicrosoftConnect>>> = ({ signal }) => getMicrosoftConnect({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMicrosoftConnect>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMicrosoftConnectQueryResult = NonNullable<Awaited<ReturnType<typeof getMicrosoftConnect>>>
+export type GetMicrosoftConnectQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Start Microsoft 365 connection
+ */
+
+export function useGetMicrosoftConnect<TData = Awaited<ReturnType<typeof getMicrosoftConnect>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMicrosoftConnect>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMicrosoftConnectQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getMicrosoftCallbackUrl = () => {
+
+
+
+
+  return `/api/integrations/microsoft/callback`
+}
+
+/**
+ * @summary Complete Microsoft 365 connection callback
+ */
+export const microsoftCallback = async ( options?: Parameters<typeof customFetch>[1]): Promise<MicrosoftIntegrationStatus> => {
+
+  return customFetch<MicrosoftIntegrationStatus>(getMicrosoftCallbackUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getMicrosoftCallbackQueryKey = () => {
+    return [
+    `/api/integrations/microsoft/callback`
+    ] as const;
+    }
+
+
+export const getMicrosoftCallbackQueryOptions = <TData = Awaited<ReturnType<typeof microsoftCallback>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof microsoftCallback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getMicrosoftCallbackQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof microsoftCallback>>> = ({ signal }) => microsoftCallback({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof microsoftCallback>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type MicrosoftCallbackQueryResult = NonNullable<Awaited<ReturnType<typeof microsoftCallback>>>
+export type MicrosoftCallbackQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Complete Microsoft 365 connection callback
+ */
+
+export function useMicrosoftCallback<TData = Awaited<ReturnType<typeof microsoftCallback>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof microsoftCallback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getMicrosoftCallbackQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDisconnectMicrosoftUrl = () => {
+
+
+
+
+  return `/api/integrations/microsoft/disconnect`
+}
+
+/**
+ * @summary Disconnect Microsoft 365
+ */
+export const disconnectMicrosoft = async ( options?: Parameters<typeof customFetch>[1]): Promise<MicrosoftIntegrationStatus> => {
+
+  return customFetch<MicrosoftIntegrationStatus>(getDisconnectMicrosoftUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getDisconnectMicrosoftMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectMicrosoft>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disconnectMicrosoft>>, TError,void, TContext> => {
+
+const mutationKey = ['disconnectMicrosoft'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectMicrosoft>>, void> = () => {
+
+
+          return  disconnectMicrosoft(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectMicrosoftMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectMicrosoft>>>
+
+    export type DisconnectMicrosoftMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Disconnect Microsoft 365
+ */
+export const useDisconnectMicrosoft = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectMicrosoft>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disconnectMicrosoft>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDisconnectMicrosoftMutationOptions(options));
     }
 

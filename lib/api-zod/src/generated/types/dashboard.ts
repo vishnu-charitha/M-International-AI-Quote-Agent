@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Activity } from './activity';
+import type { PipelineMetric } from './pipelineMetric';
 import type { Rfq } from './rfq';
 import type { SummaryMetric } from './summaryMetric';
 import type { WorkflowStat } from './workflowStat';
@@ -15,4 +16,5 @@ export interface Dashboard {
   recentRfqs: Rfq[];
   workflows: WorkflowStat[];
   activities: Activity[];
+  emailPipeline?: PipelineMetric[];
 }

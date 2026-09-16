@@ -5,7 +5,8 @@ import { OperationsShell } from '@/components/operations-shell';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { AiReviewPage, DashboardPage, EmailInboxPage, PlaceholderPage, RfqDetailPage, RfqInboxPage, placeholders } from '@/pages/operations';
+import { DashboardPage, PlaceholderPage, RfqInboxPage, placeholders } from '@/pages/operations';
+import { AiReviewDetailPage, AiReviewPageV2, EmailDetailPage, EmailInboxPageV2, RfqDetailPageV2, SettingsPage } from '@/pages/phase-two';
 import {
   Route,
   Switch,
@@ -24,9 +25,13 @@ function Router() {
         <Switch>
           <Route path="/" component={DashboardPage} />
           <Route path="/rfq-inbox" component={RfqInboxPage} />
-          <Route path="/rfqs/:rfqId" component={RfqDetailPage} />
-          <Route path="/email-inbox" component={EmailInboxPage} />
-          <Route path="/ai-review" component={AiReviewPage} />
+          <Route path="/rfqs/:rfqId" component={RfqDetailPageV2} />
+          <Route path="/email-inbox" component={EmailInboxPageV2} />
+          <Route path="/emails/:emailId" component={EmailDetailPage} />
+          <Route path="/ai-review" component={AiReviewPageV2} />
+          <Route path="/ai-review/:rfqId" component={AiReviewDetailPage} />
+          <Route path="/settings/integrations" component={SettingsPage} />
+          <Route path="/settings" component={SettingsPage} />
           {Object.keys(placeholders).map((path) => <Route key={path} path={path}><PlaceholderPage path={path} /></Route>)}
           <Route component={NotFound} />
         </Switch>

@@ -55,7 +55,12 @@ export const GetDashboardResponse = zod.object({
   "description": zod.string(),
   "time": zod.string(),
   "tone": zod.enum(['blue', 'violet', 'green', 'amber', 'slate'])
-}))
+})),
+  "emailPipeline": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number().int(),
+  "detail": zod.string()
+})).optional()
 })
 
 
@@ -113,7 +118,76 @@ export const GetRfqResponse = zod.object({
   "aircraft": zod.string(),
   "notes": zod.string(),
   "emailSubject": zod.string(),
-  "sender": zod.string()
+  "sender": zod.string(),
+  "sourceEmail": zod.union([zod.object({
+  "id": zod.number().int(),
+  "sender": zod.string(),
+  "senderEmail": zod.string(),
+  "subject": zod.string(),
+  "receivedAt": zod.string(),
+  "aiStatus": zod.enum(['ANALYZED', 'PROCESSING', 'FAILED']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "status": zod.enum(['RFQ_CREATED', 'PENDING_REVIEW', 'IGNORED'])
+}).and(zod.object({
+  "recipient": zod.string(),
+  "cc": zod.string(),
+  "bodyText": zod.string(),
+  "bodyHtml": zod.string(),
+  "processingStatus": zod.enum(['NEW', 'SYNCED', 'PROCESSING', 'PROCESSED', 'REVIEW_REQUIRED', 'FAILED', 'IGNORED']),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "attachments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "linkedRfq": zod.union([zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}),zod.null()])
+})),zod.null()]).optional(),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]).optional(),
+  "reviewHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "notes": zod.string(),
+  "createdAt": zod.string()
+})).optional()
 }))
 
 
@@ -135,6 +209,161 @@ export const ListEmailsResponse = zod.array(ListEmailsResponseItem)
 
 
 /**
+ * @summary Get an email and its processing details
+ */
+export const GetEmailParams = zod.object({
+  "emailId": zod.coerce.number().int()
+})
+
+export const GetEmailResponse = zod.object({
+  "id": zod.number().int(),
+  "sender": zod.string(),
+  "senderEmail": zod.string(),
+  "subject": zod.string(),
+  "receivedAt": zod.string(),
+  "aiStatus": zod.enum(['ANALYZED', 'PROCESSING', 'FAILED']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "status": zod.enum(['RFQ_CREATED', 'PENDING_REVIEW', 'IGNORED'])
+}).and(zod.object({
+  "recipient": zod.string(),
+  "cc": zod.string(),
+  "bodyText": zod.string(),
+  "bodyHtml": zod.string(),
+  "processingStatus": zod.enum(['NEW', 'SYNCED', 'PROCESSING', 'PROCESSED', 'REVIEW_REQUIRED', 'FAILED', 'IGNORED']),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "attachments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "linkedRfq": zod.union([zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}),zod.null()])
+}))
+
+
+/**
+ * @summary Synchronize inbox email
+ */
+export const SyncEmailsResponse = zod.object({
+  "mode": zod.enum(['MICROSOFT_GRAPH', 'DEVELOPMENT']),
+  "synced": zod.number().int(),
+  "duplicatesSkipped": zod.number().int(),
+  "failed": zod.number().int(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Process an email through the RFQ analysis pipeline
+ */
+export const ProcessEmailParams = zod.object({
+  "emailId": zod.coerce.number().int()
+})
+
+export const ProcessEmailResponse = zod.object({
+  "email": zod.object({
+  "id": zod.number().int(),
+  "sender": zod.string(),
+  "senderEmail": zod.string(),
+  "subject": zod.string(),
+  "receivedAt": zod.string(),
+  "aiStatus": zod.enum(['ANALYZED', 'PROCESSING', 'FAILED']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "status": zod.enum(['RFQ_CREATED', 'PENDING_REVIEW', 'IGNORED'])
+}).and(zod.object({
+  "recipient": zod.string(),
+  "cc": zod.string(),
+  "bodyText": zod.string(),
+  "bodyHtml": zod.string(),
+  "processingStatus": zod.enum(['NEW', 'SYNCED', 'PROCESSING', 'PROCESSED', 'REVIEW_REQUIRED', 'FAILED', 'IGNORED']),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "attachments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "linkedRfq": zod.union([zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}),zod.null()])
+})),
+  "rfqCreated": zod.boolean(),
+  "reviewRequired": zod.boolean(),
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Get attachment metadata
+ */
+export const GetEmailAttachmentParams = zod.object({
+  "attachmentId": zod.coerce.number().int()
+})
+
+export const GetEmailAttachmentResponse = zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})
+
+
+/**
  * @summary List requests needing human review
  */
 export const ListAiReviewsResponseItem = zod.object({
@@ -148,6 +377,477 @@ export const ListAiReviewsResponseItem = zod.object({
   "status": zod.enum(['NEEDS_REVIEW', 'APPROVED', 'CHANGED'])
 })
 export const ListAiReviewsResponse = zod.array(ListAiReviewsResponseItem)
+
+
+/**
+ * @summary Get AI review detail
+ */
+export const GetAiReviewParams = zod.object({
+  "rfqId": zod.coerce.number().int()
+})
+
+export const GetAiReviewResponse = zod.object({
+  "id": zod.number().int(),
+  "rfqId": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "classification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "reason": zod.string(),
+  "status": zod.enum(['NEEDS_REVIEW', 'APPROVED', 'CHANGED'])
+}).and(zod.object({
+  "emailSubject": zod.string(),
+  "createdAt": zod.string(),
+  "originalEmail": zod.object({
+  "id": zod.number().int(),
+  "sender": zod.string(),
+  "senderEmail": zod.string(),
+  "subject": zod.string(),
+  "receivedAt": zod.string(),
+  "aiStatus": zod.enum(['ANALYZED', 'PROCESSING', 'FAILED']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "status": zod.enum(['RFQ_CREATED', 'PENDING_REVIEW', 'IGNORED'])
+}).and(zod.object({
+  "recipient": zod.string(),
+  "cc": zod.string(),
+  "bodyText": zod.string(),
+  "bodyHtml": zod.string(),
+  "processingStatus": zod.enum(['NEW', 'SYNCED', 'PROCESSING', 'PROCESSED', 'REVIEW_REQUIRED', 'FAILED', 'IGNORED']),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "attachments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "linkedRfq": zod.union([zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}),zod.null()])
+})),
+  "analysis": zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),
+  "reviewHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "notes": zod.string(),
+  "createdAt": zod.string()
+}))
+}))
+
+
+/**
+ * @summary Approve an AI result
+ */
+export const ApproveAiReviewParams = zod.object({
+  "rfqId": zod.coerce.number().int()
+})
+
+export const ApproveAiReviewResponse = zod.object({
+  "id": zod.number().int(),
+  "rfqId": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "classification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "reason": zod.string(),
+  "status": zod.enum(['NEEDS_REVIEW', 'APPROVED', 'CHANGED'])
+}).and(zod.object({
+  "emailSubject": zod.string(),
+  "createdAt": zod.string(),
+  "originalEmail": zod.object({
+  "id": zod.number().int(),
+  "sender": zod.string(),
+  "senderEmail": zod.string(),
+  "subject": zod.string(),
+  "receivedAt": zod.string(),
+  "aiStatus": zod.enum(['ANALYZED', 'PROCESSING', 'FAILED']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "status": zod.enum(['RFQ_CREATED', 'PENDING_REVIEW', 'IGNORED'])
+}).and(zod.object({
+  "recipient": zod.string(),
+  "cc": zod.string(),
+  "bodyText": zod.string(),
+  "bodyHtml": zod.string(),
+  "processingStatus": zod.enum(['NEW', 'SYNCED', 'PROCESSING', 'PROCESSED', 'REVIEW_REQUIRED', 'FAILED', 'IGNORED']),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "attachments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "linkedRfq": zod.union([zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}),zod.null()])
+})),
+  "analysis": zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),
+  "reviewHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "notes": zod.string(),
+  "createdAt": zod.string()
+}))
+}))
+
+
+/**
+ * @summary Change the request classification
+ */
+export const ReclassifyAiReviewParams = zod.object({
+  "rfqId": zod.coerce.number().int()
+})
+
+export const ReclassifyAiReviewBody = zod.object({
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "notes": zod.string().optional()
+})
+
+export const ReclassifyAiReviewResponse = zod.object({
+  "id": zod.number().int(),
+  "rfqId": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "classification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "reason": zod.string(),
+  "status": zod.enum(['NEEDS_REVIEW', 'APPROVED', 'CHANGED'])
+}).and(zod.object({
+  "emailSubject": zod.string(),
+  "createdAt": zod.string(),
+  "originalEmail": zod.object({
+  "id": zod.number().int(),
+  "sender": zod.string(),
+  "senderEmail": zod.string(),
+  "subject": zod.string(),
+  "receivedAt": zod.string(),
+  "aiStatus": zod.enum(['ANALYZED', 'PROCESSING', 'FAILED']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "status": zod.enum(['RFQ_CREATED', 'PENDING_REVIEW', 'IGNORED'])
+}).and(zod.object({
+  "recipient": zod.string(),
+  "cc": zod.string(),
+  "bodyText": zod.string(),
+  "bodyHtml": zod.string(),
+  "processingStatus": zod.enum(['NEW', 'SYNCED', 'PROCESSING', 'PROCESSED', 'REVIEW_REQUIRED', 'FAILED', 'IGNORED']),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "attachments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "linkedRfq": zod.union([zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}),zod.null()])
+})),
+  "analysis": zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),
+  "reviewHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "notes": zod.string(),
+  "createdAt": zod.string()
+}))
+}))
+
+
+/**
+ * @summary Reject an AI result as non-RFQ
+ */
+export const RejectAiReviewParams = zod.object({
+  "rfqId": zod.coerce.number().int()
+})
+
+export const RejectAiReviewResponse = zod.object({
+  "id": zod.number().int(),
+  "rfqId": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "classification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "reason": zod.string(),
+  "status": zod.enum(['NEEDS_REVIEW', 'APPROVED', 'CHANGED'])
+}).and(zod.object({
+  "emailSubject": zod.string(),
+  "createdAt": zod.string(),
+  "originalEmail": zod.object({
+  "id": zod.number().int(),
+  "sender": zod.string(),
+  "senderEmail": zod.string(),
+  "subject": zod.string(),
+  "receivedAt": zod.string(),
+  "aiStatus": zod.enum(['ANALYZED', 'PROCESSING', 'FAILED']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "status": zod.enum(['RFQ_CREATED', 'PENDING_REVIEW', 'IGNORED'])
+}).and(zod.object({
+  "recipient": zod.string(),
+  "cc": zod.string(),
+  "bodyText": zod.string(),
+  "bodyHtml": zod.string(),
+  "processingStatus": zod.enum(['NEW', 'SYNCED', 'PROCESSING', 'PROCESSED', 'REVIEW_REQUIRED', 'FAILED', 'IGNORED']),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "attachments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "linkedRfq": zod.union([zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}),zod.null()])
+})),
+  "analysis": zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),
+  "reviewHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "notes": zod.string(),
+  "createdAt": zod.string()
+}))
+}))
+
+
+/**
+ * @summary Edit extracted RFQ details
+ */
+export const UpdateAiReviewParams = zod.object({
+  "rfqId": zod.coerce.number().int()
+})
+
+export const UpdateAiReviewBody = zod.object({
+  "customer": zod.string().optional(),
+  "partNumber": zod.string().optional(),
+  "description": zod.string().optional(),
+  "quantity": zod.number().int().optional(),
+  "condition": zod.string().optional(),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']).optional(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+  "notes": zod.string().optional()
+})
+
+export const UpdateAiReviewResponse = zod.object({
+  "id": zod.number().int(),
+  "rfqId": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "classification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "reason": zod.string(),
+  "status": zod.enum(['NEEDS_REVIEW', 'APPROVED', 'CHANGED'])
+}).and(zod.object({
+  "emailSubject": zod.string(),
+  "createdAt": zod.string(),
+  "originalEmail": zod.object({
+  "id": zod.number().int(),
+  "sender": zod.string(),
+  "senderEmail": zod.string(),
+  "subject": zod.string(),
+  "receivedAt": zod.string(),
+  "aiStatus": zod.enum(['ANALYZED', 'PROCESSING', 'FAILED']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "status": zod.enum(['RFQ_CREATED', 'PENDING_REVIEW', 'IGNORED'])
+}).and(zod.object({
+  "recipient": zod.string(),
+  "cc": zod.string(),
+  "bodyText": zod.string(),
+  "bodyHtml": zod.string(),
+  "processingStatus": zod.enum(['NEW', 'SYNCED', 'PROCESSING', 'PROCESSED', 'REVIEW_REQUIRED', 'FAILED', 'IGNORED']),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "attachments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "linkedRfq": zod.union([zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}),zod.null()])
+})),
+  "analysis": zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),
+  "reviewHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "notes": zod.string(),
+  "createdAt": zod.string()
+}))
+}))
 
 
 /**
@@ -171,6 +871,58 @@ export const ReviewAiResponse = zod.object({
   "confidence": zod.number().int(),
   "reason": zod.string(),
   "status": zod.enum(['NEEDS_REVIEW', 'APPROVED', 'CHANGED'])
+})
+
+
+/**
+ * @summary Get Microsoft 365 connection status
+ */
+export const GetMicrosoftStatusResponse = zod.object({
+  "connected": zod.boolean(),
+  "mailbox": zod.string().nullable(),
+  "lastSync": zod.string().nullable(),
+  "message": zod.string(),
+  "configured": zod.boolean(),
+  "developmentMode": zod.boolean()
+})
+
+
+/**
+ * @summary Start Microsoft 365 connection
+ */
+export const GetMicrosoftConnectResponse = zod.object({
+  "connected": zod.boolean(),
+  "mailbox": zod.string().nullable(),
+  "lastSync": zod.string().nullable(),
+  "message": zod.string(),
+  "configured": zod.boolean(),
+  "developmentMode": zod.boolean()
+})
+
+
+/**
+ * @summary Complete Microsoft 365 connection callback
+ */
+export const MicrosoftCallbackResponse = zod.object({
+  "connected": zod.boolean(),
+  "mailbox": zod.string().nullable(),
+  "lastSync": zod.string().nullable(),
+  "message": zod.string(),
+  "configured": zod.boolean(),
+  "developmentMode": zod.boolean()
+})
+
+
+/**
+ * @summary Disconnect Microsoft 365
+ */
+export const DisconnectMicrosoftResponse = zod.object({
+  "connected": zod.boolean(),
+  "mailbox": zod.string().nullable(),
+  "lastSync": zod.string().nullable(),
+  "message": zod.string(),
+  "configured": zod.boolean(),
+  "developmentMode": zod.boolean()
 })
 
 
