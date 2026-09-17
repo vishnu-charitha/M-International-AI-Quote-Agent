@@ -20,9 +20,14 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AddReviewInput,
   AiReview,
   AiReviewAction,
   AiReviewDetail,
+  AnalyzeRfqInput,
+  AnalyzeRfqResult,
+  CatalogItem,
+  CreateRfqInput,
   Dashboard,
   Email,
   EmailAttachment,
@@ -31,12 +36,18 @@ import type {
   EmailSyncResult,
   ErrorResponse,
   HealthStatus,
+  InventoryStatus,
   ListRfqsParams,
   MicrosoftIntegrationStatus,
+  PricingRequest,
+  PricingResponse,
   ReclassifyReviewInput,
   Rfq,
   RfqDetail,
-  UpdateReviewInput
+  SearchCatalogParams,
+  UpdateMicrosoftConfigInput,
+  UpdateReviewInput,
+  UpdateRfqInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -305,6 +316,148 @@ export function useListRfqs<TData = Awaited<ReturnType<typeof listRfqs>>, TError
 
 
 
+export const getCreateRfqUrl = () => {
+
+
+
+
+  return `/api/rfqs`
+}
+
+/**
+ * @summary Create an RFQ manually
+ */
+export const createRfq = async (createRfqInput: CreateRfqInput, options?: Parameters<typeof customFetch>[1]): Promise<RfqDetail> => {
+
+  return customFetch<RfqDetail>(getCreateRfqUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createRfqInput)
+  }
+);}
+
+
+
+
+
+export const getCreateRfqMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRfq>>, TError,{data: BodyType<CreateRfqInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createRfq>>, TError,{data: BodyType<CreateRfqInput>}, TContext> => {
+
+const mutationKey = ['createRfq'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createRfq>>, {data: BodyType<CreateRfqInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createRfq(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateRfqMutationResult = NonNullable<Awaited<ReturnType<typeof createRfq>>>
+    export type CreateRfqMutationBody = BodyType<CreateRfqInput>
+    export type CreateRfqMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create an RFQ manually
+ */
+export const useCreateRfq = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createRfq>>, TError,{data: BodyType<CreateRfqInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createRfq>>,
+        TError,
+        {data: BodyType<CreateRfqInput>},
+        TContext
+      > => {
+      return useMutation(getCreateRfqMutationOptions(options));
+    }
+
+export const getAnalyzeRfqUrl = () => {
+
+
+
+
+  return `/api/rfqs/analyze`
+}
+
+/**
+ * @summary Analyze manual RFQ text
+ */
+export const analyzeRfq = async (analyzeRfqInput: AnalyzeRfqInput, options?: Parameters<typeof customFetch>[1]): Promise<AnalyzeRfqResult> => {
+
+  return customFetch<AnalyzeRfqResult>(getAnalyzeRfqUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(analyzeRfqInput)
+  }
+);}
+
+
+
+
+
+export const getAnalyzeRfqMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeRfq>>, TError,{data: BodyType<AnalyzeRfqInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof analyzeRfq>>, TError,{data: BodyType<AnalyzeRfqInput>}, TContext> => {
+
+const mutationKey = ['analyzeRfq'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzeRfq>>, {data: BodyType<AnalyzeRfqInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  analyzeRfq(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnalyzeRfqMutationResult = NonNullable<Awaited<ReturnType<typeof analyzeRfq>>>
+    export type AnalyzeRfqMutationBody = BodyType<AnalyzeRfqInput>
+    export type AnalyzeRfqMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Analyze manual RFQ text
+ */
+export const useAnalyzeRfq = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeRfq>>, TError,{data: BodyType<AnalyzeRfqInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof analyzeRfq>>,
+        TError,
+        {data: BodyType<AnalyzeRfqInput>},
+        TContext
+      > => {
+      return useMutation(getAnalyzeRfqMutationOptions(options));
+    }
+
 export const getGetRfqUrl = (rfqId: number,) => {
 
 
@@ -381,6 +534,382 @@ export function useGetRfq<TData = Awaited<ReturnType<typeof getRfq>>, TError = E
 
 
 
+
+export const getUpdateRfqUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/rfqs/${rfqId}`
+}
+
+/**
+ * @summary Update an RFQ (e.g. to provide missing information)
+ */
+export const updateRfq = async (rfqId: number,
+    updateRfqInput: UpdateRfqInput, options?: Parameters<typeof customFetch>[1]): Promise<RfqDetail> => {
+
+  return customFetch<RfqDetail>(getUpdateRfqUrl(rfqId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateRfqInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateRfqMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRfq>>, TError,{rfqId: number;data: BodyType<UpdateRfqInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateRfq>>, TError,{rfqId: number;data: BodyType<UpdateRfqInput>}, TContext> => {
+
+const mutationKey = ['updateRfq'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateRfq>>, {rfqId: number;data: BodyType<UpdateRfqInput>}> = (props) => {
+          const {rfqId,data} = props ?? {};
+
+          return  updateRfq(rfqId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateRfqMutationResult = NonNullable<Awaited<ReturnType<typeof updateRfq>>>
+    export type UpdateRfqMutationBody = BodyType<UpdateRfqInput>
+    export type UpdateRfqMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Update an RFQ (e.g. to provide missing information)
+ */
+export const useUpdateRfq = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateRfq>>, TError,{rfqId: number;data: BodyType<UpdateRfqInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateRfq>>,
+        TError,
+        {rfqId: number;data: BodyType<UpdateRfqInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateRfqMutationOptions(options));
+    }
+
+export const getAddRfqReviewUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/rfqs/${rfqId}/reviews`
+}
+
+/**
+ * @summary Add a human review action to an RFQ
+ */
+export const addRfqReview = async (rfqId: number,
+    addReviewInput: AddReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<RfqDetail> => {
+
+  return customFetch<RfqDetail>(getAddRfqReviewUrl(rfqId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(addReviewInput)
+  }
+);}
+
+
+
+
+
+export const getAddRfqReviewMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addRfqReview>>, TError,{rfqId: number;data: BodyType<AddReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addRfqReview>>, TError,{rfqId: number;data: BodyType<AddReviewInput>}, TContext> => {
+
+const mutationKey = ['addRfqReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addRfqReview>>, {rfqId: number;data: BodyType<AddReviewInput>}> = (props) => {
+          const {rfqId,data} = props ?? {};
+
+          return  addRfqReview(rfqId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddRfqReviewMutationResult = NonNullable<Awaited<ReturnType<typeof addRfqReview>>>
+    export type AddRfqReviewMutationBody = BodyType<AddReviewInput>
+    export type AddRfqReviewMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Add a human review action to an RFQ
+ */
+export const useAddRfqReview = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addRfqReview>>, TError,{rfqId: number;data: BodyType<AddReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addRfqReview>>,
+        TError,
+        {rfqId: number;data: BodyType<AddReviewInput>},
+        TContext
+      > => {
+      return useMutation(getAddRfqReviewMutationOptions(options));
+    }
+
+export const getSearchCatalogUrl = (params: SearchCatalogParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/catalog/search?${stringifiedParams}` : `/api/catalog/search`
+}
+
+/**
+ * @summary Search the part catalog
+ */
+export const searchCatalog = async (params: SearchCatalogParams, options?: Parameters<typeof customFetch>[1]): Promise<CatalogItem[]> => {
+
+  return customFetch<CatalogItem[]>(getSearchCatalogUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchCatalogQueryKey = (params?: SearchCatalogParams,) => {
+    return [
+    `/api/catalog/search`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchCatalogQueryOptions = <TData = Awaited<ReturnType<typeof searchCatalog>>, TError = ErrorType<unknown>>(params: SearchCatalogParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchCatalogQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchCatalog>>> = ({ signal }) => searchCatalog(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchCatalog>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SearchCatalogQueryResult = NonNullable<Awaited<ReturnType<typeof searchCatalog>>>
+export type SearchCatalogQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Search the part catalog
+ */
+
+export function useSearchCatalog<TData = Awaited<ReturnType<typeof searchCatalog>>, TError = ErrorType<unknown>>(
+ params: SearchCatalogParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSearchCatalogQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetInventoryUrl = (partNumber: string,) => {
+
+
+
+
+  return `/api/inventory/${partNumber}`
+}
+
+/**
+ * @summary Get inventory status for a part
+ */
+export const getInventory = async (partNumber: string, options?: Parameters<typeof customFetch>[1]): Promise<InventoryStatus> => {
+
+  return customFetch<InventoryStatus>(getGetInventoryUrl(partNumber),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetInventoryQueryKey = (partNumber: string,) => {
+    return [
+    `/api/inventory/${partNumber}`
+    ] as const;
+    }
+
+
+export const getGetInventoryQueryOptions = <TData = Awaited<ReturnType<typeof getInventory>>, TError = ErrorType<unknown>>(partNumber: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInventory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetInventoryQueryKey(partNumber);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getInventory>>> = ({ signal }) => getInventory(partNumber, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: partNumber !== null && partNumber !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getInventory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetInventoryQueryResult = NonNullable<Awaited<ReturnType<typeof getInventory>>>
+export type GetInventoryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get inventory status for a part
+ */
+
+export function useGetInventory<TData = Awaited<ReturnType<typeof getInventory>>, TError = ErrorType<unknown>>(
+ partNumber: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getInventory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetInventoryQueryOptions(partNumber,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCalculatePricingUrl = () => {
+
+
+
+
+  return `/api/pricing/calculate`
+}
+
+/**
+ * @summary Calculate pricing for an RFQ item
+ */
+export const calculatePricing = async (pricingRequest: PricingRequest, options?: Parameters<typeof customFetch>[1]): Promise<PricingResponse> => {
+
+  return customFetch<PricingResponse>(getCalculatePricingUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pricingRequest)
+  }
+);}
+
+
+
+
+
+export const getCalculatePricingMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof calculatePricing>>, TError,{data: BodyType<PricingRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof calculatePricing>>, TError,{data: BodyType<PricingRequest>}, TContext> => {
+
+const mutationKey = ['calculatePricing'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof calculatePricing>>, {data: BodyType<PricingRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  calculatePricing(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CalculatePricingMutationResult = NonNullable<Awaited<ReturnType<typeof calculatePricing>>>
+    export type CalculatePricingMutationBody = BodyType<PricingRequest>
+    export type CalculatePricingMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Calculate pricing for an RFQ item
+ */
+export const useCalculatePricing = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof calculatePricing>>, TError,{data: BodyType<PricingRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof calculatePricing>>,
+        TError,
+        {data: BodyType<PricingRequest>},
+        TContext
+      > => {
+      return useMutation(getCalculatePricingMutationOptions(options));
+    }
 
 export const getListEmailsUrl = () => {
 
@@ -1568,6 +2097,77 @@ export function useMicrosoftCallback<TData = Awaited<ReturnType<typeof microsoft
 
 
 
+
+export const getUpdateMicrosoftConfigUrl = () => {
+
+
+
+
+  return `/api/integrations/microsoft/config`
+}
+
+/**
+ * @summary Update Microsoft 365 configuration
+ */
+export const updateMicrosoftConfig = async (updateMicrosoftConfigInput: UpdateMicrosoftConfigInput, options?: Parameters<typeof customFetch>[1]): Promise<MicrosoftIntegrationStatus> => {
+
+  return customFetch<MicrosoftIntegrationStatus>(getUpdateMicrosoftConfigUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateMicrosoftConfigInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateMicrosoftConfigMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMicrosoftConfig>>, TError,{data: BodyType<UpdateMicrosoftConfigInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMicrosoftConfig>>, TError,{data: BodyType<UpdateMicrosoftConfigInput>}, TContext> => {
+
+const mutationKey = ['updateMicrosoftConfig'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMicrosoftConfig>>, {data: BodyType<UpdateMicrosoftConfigInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateMicrosoftConfig(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMicrosoftConfigMutationResult = NonNullable<Awaited<ReturnType<typeof updateMicrosoftConfig>>>
+    export type UpdateMicrosoftConfigMutationBody = BodyType<UpdateMicrosoftConfigInput>
+    export type UpdateMicrosoftConfigMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update Microsoft 365 configuration
+ */
+export const useUpdateMicrosoftConfig = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMicrosoftConfig>>, TError,{data: BodyType<UpdateMicrosoftConfigInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMicrosoftConfig>>,
+        TError,
+        {data: BodyType<UpdateMicrosoftConfigInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateMicrosoftConfigMutationOptions(options));
+    }
 
 export const getDisconnectMicrosoftUrl = () => {
 

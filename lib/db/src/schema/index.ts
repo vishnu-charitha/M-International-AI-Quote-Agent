@@ -7,3 +7,5 @@ export * from "./email-attachments";
 export * from "./rfq-items";
 export * from "./ai-review-history";
 export * from "./integrations";
+export * from "./catalog";
+export * from "./inventory";

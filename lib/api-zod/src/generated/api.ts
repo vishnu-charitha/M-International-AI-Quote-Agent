@@ -37,7 +37,7 @@ export const GetDashboardResponse = zod.object({
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "confidence": zod.number().int(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
   "createdAt": zod.string(),
   "age": zod.string()
 })),
@@ -72,7 +72,7 @@ export const ListRfqsQueryParams = zod.object({
   "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']).optional(),
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']).optional(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']).optional()
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']).optional()
 })
 
 export const ListRfqsResponseItem = zod.object({
@@ -85,7 +85,7 @@ export const ListRfqsResponseItem = zod.object({
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "confidence": zod.number().int(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
   "createdAt": zod.string(),
   "age": zod.string()
 })
@@ -93,13 +93,27 @@ export const ListRfqsResponse = zod.array(ListRfqsResponseItem)
 
 
 /**
- * @summary Get an RFQ
+ * @summary Create an RFQ manually
  */
-export const GetRfqParams = zod.object({
-  "rfqId": zod.coerce.number().int()
+export const CreateRfqBody = zod.object({
+  "customer": zod.object({
+  "name": zod.string(),
+  "company": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().optional()
+}),
+  "items": zod.array(zod.object({
+  "partNumber": zod.string(),
+  "description": zod.string().optional(),
+  "quantity": zod.number().int(),
+  "condition": zod.string().optional()
+})),
+  "notes": zod.string().optional(),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']).optional()
 })
 
-export const GetRfqResponse = zod.object({
+export const CreateRfqResponse = zod.object({
   "id": zod.number().int(),
   "rfqNumber": zod.string(),
   "customer": zod.string(),
@@ -109,11 +123,13 @@ export const GetRfqResponse = zod.object({
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "confidence": zod.number().int(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
   "createdAt": zod.string(),
   "age": zod.string()
 }).and(zod.object({
   "description": zod.string(),
+  "customerId": zod.number().int().optional(),
+  "customerPhone": zod.string().nullish(),
   "quantity": zod.number().int(),
   "aircraft": zod.string(),
   "notes": zod.string(),
@@ -165,7 +181,7 @@ export const GetRfqResponse = zod.object({
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "confidence": zod.number().int(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
   "createdAt": zod.string(),
   "age": zod.string()
 }),zod.null()])
@@ -182,13 +198,593 @@ export const GetRfqResponse = zod.object({
 }),zod.null()]).optional(),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
   "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "notes": zod.string(),
   "createdAt": zod.string()
+})).optional(),
+  "catalog": zod.object({
+  "partNumber": zod.string(),
+  "description": zod.string().optional(),
+  "aircraft": zod.string().optional(),
+  "manufacturer": zod.string().optional(),
+  "manufacturerPartNumber": zod.string().optional(),
+  "alternatePartNumbers": zod.string().optional(),
+  "category": zod.string().optional(),
+  "condition": zod.string().optional(),
+  "certification": zod.string().optional(),
+  "basePrice": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "supplier": zod.string().optional(),
+  "leadTimeDays": zod.number().optional()
+}).optional(),
+  "inventory": zod.object({
+  "partNumber": zod.string(),
+  "availableQty": zod.number().int(),
+  "reservedQty": zod.number().int().optional(),
+  "warehouseLocation": zod.string().optional(),
+  "supplier": zod.string().optional(),
+  "condition": zod.string().optional(),
+  "expectedReplenishmentDate": zod.string().optional()
+}).optional(),
+  "pricing": zod.object({
+  "unitPrice": zod.number(),
+  "subtotal": zod.number(),
+  "discount": zod.number(),
+  "tax": zod.number(),
+  "shippingHandling": zod.number(),
+  "grandTotal": zod.number(),
+  "currency": zod.string()
+}).optional(),
+  "compliance": zod.object({
+  "status": zod.string().optional(),
+  "reasons": zod.array(zod.string()).optional()
+}).optional(),
+  "ragContext": zod.array(zod.object({
+  "content": zod.string().optional(),
+  "metadata": zod.object({
+
+}).passthrough().optional()
 })).optional()
 }))
+
+
+/**
+ * @summary Analyze manual RFQ text
+ */
+export const AnalyzeRfqBody = zod.object({
+  "rawText": zod.string()
+})
+
+export const AnalyzeRfqResponse = zod.object({
+  "customer": zod.object({
+  "name": zod.string(),
+  "company": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().optional()
+}),
+  "items": zod.array(zod.object({
+  "partNumber": zod.string(),
+  "description": zod.string().optional(),
+  "quantity": zod.number().int(),
+  "condition": zod.string().optional()
+})),
+  "requirements": zod.object({
+  "deliveryRequirement": zod.string().optional(),
+  "urgency": zod.string().optional()
+}),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "missingInformation": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Get an RFQ
+ */
+export const GetRfqParams = zod.object({
+  "rfqId": zod.coerce.number().int()
+})
+
+export const GetRfqResponse = zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}).and(zod.object({
+  "description": zod.string(),
+  "customerId": zod.number().int().optional(),
+  "customerPhone": zod.string().nullish(),
+  "quantity": zod.number().int(),
+  "aircraft": zod.string(),
+  "notes": zod.string(),
+  "emailSubject": zod.string(),
+  "sender": zod.string(),
+  "sourceEmail": zod.union([zod.object({
+  "id": zod.number().int(),
+  "sender": zod.string(),
+  "senderEmail": zod.string(),
+  "subject": zod.string(),
+  "receivedAt": zod.string(),
+  "aiStatus": zod.enum(['ANALYZED', 'PROCESSING', 'FAILED']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "status": zod.enum(['RFQ_CREATED', 'PENDING_REVIEW', 'IGNORED'])
+}).and(zod.object({
+  "recipient": zod.string(),
+  "cc": zod.string(),
+  "bodyText": zod.string(),
+  "bodyHtml": zod.string(),
+  "processingStatus": zod.enum(['NEW', 'SYNCED', 'PROCESSING', 'PROCESSED', 'REVIEW_REQUIRED', 'FAILED', 'IGNORED']),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "attachments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "linkedRfq": zod.union([zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}),zod.null()])
+})),zod.null()]).optional(),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]).optional(),
+  "reviewHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
+  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "notes": zod.string(),
+  "createdAt": zod.string()
+})).optional(),
+  "catalog": zod.object({
+  "partNumber": zod.string(),
+  "description": zod.string().optional(),
+  "aircraft": zod.string().optional(),
+  "manufacturer": zod.string().optional(),
+  "manufacturerPartNumber": zod.string().optional(),
+  "alternatePartNumbers": zod.string().optional(),
+  "category": zod.string().optional(),
+  "condition": zod.string().optional(),
+  "certification": zod.string().optional(),
+  "basePrice": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "supplier": zod.string().optional(),
+  "leadTimeDays": zod.number().optional()
+}).optional(),
+  "inventory": zod.object({
+  "partNumber": zod.string(),
+  "availableQty": zod.number().int(),
+  "reservedQty": zod.number().int().optional(),
+  "warehouseLocation": zod.string().optional(),
+  "supplier": zod.string().optional(),
+  "condition": zod.string().optional(),
+  "expectedReplenishmentDate": zod.string().optional()
+}).optional(),
+  "pricing": zod.object({
+  "unitPrice": zod.number(),
+  "subtotal": zod.number(),
+  "discount": zod.number(),
+  "tax": zod.number(),
+  "shippingHandling": zod.number(),
+  "grandTotal": zod.number(),
+  "currency": zod.string()
+}).optional(),
+  "compliance": zod.object({
+  "status": zod.string().optional(),
+  "reasons": zod.array(zod.string()).optional()
+}).optional(),
+  "ragContext": zod.array(zod.object({
+  "content": zod.string().optional(),
+  "metadata": zod.object({
+
+}).passthrough().optional()
+})).optional()
+}))
+
+
+/**
+ * @summary Update an RFQ (e.g. to provide missing information)
+ */
+export const UpdateRfqParams = zod.object({
+  "rfqId": zod.coerce.number().int()
+})
+
+export const UpdateRfqBody = zod.object({
+  "customerPhone": zod.string().optional(),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']).optional()
+})
+
+export const UpdateRfqResponse = zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}).and(zod.object({
+  "description": zod.string(),
+  "customerId": zod.number().int().optional(),
+  "customerPhone": zod.string().nullish(),
+  "quantity": zod.number().int(),
+  "aircraft": zod.string(),
+  "notes": zod.string(),
+  "emailSubject": zod.string(),
+  "sender": zod.string(),
+  "sourceEmail": zod.union([zod.object({
+  "id": zod.number().int(),
+  "sender": zod.string(),
+  "senderEmail": zod.string(),
+  "subject": zod.string(),
+  "receivedAt": zod.string(),
+  "aiStatus": zod.enum(['ANALYZED', 'PROCESSING', 'FAILED']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "status": zod.enum(['RFQ_CREATED', 'PENDING_REVIEW', 'IGNORED'])
+}).and(zod.object({
+  "recipient": zod.string(),
+  "cc": zod.string(),
+  "bodyText": zod.string(),
+  "bodyHtml": zod.string(),
+  "processingStatus": zod.enum(['NEW', 'SYNCED', 'PROCESSING', 'PROCESSED', 'REVIEW_REQUIRED', 'FAILED', 'IGNORED']),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "attachments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "linkedRfq": zod.union([zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}),zod.null()])
+})),zod.null()]).optional(),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]).optional(),
+  "reviewHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
+  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "notes": zod.string(),
+  "createdAt": zod.string()
+})).optional(),
+  "catalog": zod.object({
+  "partNumber": zod.string(),
+  "description": zod.string().optional(),
+  "aircraft": zod.string().optional(),
+  "manufacturer": zod.string().optional(),
+  "manufacturerPartNumber": zod.string().optional(),
+  "alternatePartNumbers": zod.string().optional(),
+  "category": zod.string().optional(),
+  "condition": zod.string().optional(),
+  "certification": zod.string().optional(),
+  "basePrice": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "supplier": zod.string().optional(),
+  "leadTimeDays": zod.number().optional()
+}).optional(),
+  "inventory": zod.object({
+  "partNumber": zod.string(),
+  "availableQty": zod.number().int(),
+  "reservedQty": zod.number().int().optional(),
+  "warehouseLocation": zod.string().optional(),
+  "supplier": zod.string().optional(),
+  "condition": zod.string().optional(),
+  "expectedReplenishmentDate": zod.string().optional()
+}).optional(),
+  "pricing": zod.object({
+  "unitPrice": zod.number(),
+  "subtotal": zod.number(),
+  "discount": zod.number(),
+  "tax": zod.number(),
+  "shippingHandling": zod.number(),
+  "grandTotal": zod.number(),
+  "currency": zod.string()
+}).optional(),
+  "compliance": zod.object({
+  "status": zod.string().optional(),
+  "reasons": zod.array(zod.string()).optional()
+}).optional(),
+  "ragContext": zod.array(zod.object({
+  "content": zod.string().optional(),
+  "metadata": zod.object({
+
+}).passthrough().optional()
+})).optional()
+}))
+
+
+/**
+ * @summary Add a human review action to an RFQ
+ */
+export const AddRfqReviewParams = zod.object({
+  "rfqId": zod.coerce.number().int()
+})
+
+export const AddRfqReviewBody = zod.object({
+  "action": zod.enum(['APPROVED', 'REJECTED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
+  "notes": zod.string().optional()
+})
+
+export const AddRfqReviewResponse = zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}).and(zod.object({
+  "description": zod.string(),
+  "customerId": zod.number().int().optional(),
+  "customerPhone": zod.string().nullish(),
+  "quantity": zod.number().int(),
+  "aircraft": zod.string(),
+  "notes": zod.string(),
+  "emailSubject": zod.string(),
+  "sender": zod.string(),
+  "sourceEmail": zod.union([zod.object({
+  "id": zod.number().int(),
+  "sender": zod.string(),
+  "senderEmail": zod.string(),
+  "subject": zod.string(),
+  "receivedAt": zod.string(),
+  "aiStatus": zod.enum(['ANALYZED', 'PROCESSING', 'FAILED']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "status": zod.enum(['RFQ_CREATED', 'PENDING_REVIEW', 'IGNORED'])
+}).and(zod.object({
+  "recipient": zod.string(),
+  "cc": zod.string(),
+  "bodyText": zod.string(),
+  "bodyHtml": zod.string(),
+  "processingStatus": zod.enum(['NEW', 'SYNCED', 'PROCESSING', 'PROCESSED', 'REVIEW_REQUIRED', 'FAILED', 'IGNORED']),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "attachments": zod.array(zod.object({
+  "id": zod.number().int(),
+  "emailId": zod.number().int(),
+  "fileName": zod.string(),
+  "contentType": zod.string(),
+  "fileSize": zod.number().int(),
+  "processingStatus": zod.enum(['PENDING', 'PROCESSING', 'EXTRACTED', 'FAILED', 'UNSUPPORTED']),
+  "extractedText": zod.string().nullable()
+})),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]),
+  "linkedRfq": zod.union([zod.object({
+  "id": zod.number().int(),
+  "rfqNumber": zod.string(),
+  "customer": zod.string(),
+  "customerCompany": zod.string(),
+  "partNumber": zod.string(),
+  "source": zod.enum(['EMAIL', 'WEBSITE', 'PHONE', 'PORTAL']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidence": zod.number().int(),
+  "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
+  "createdAt": zod.string(),
+  "age": zod.string()
+}),zod.null()])
+})),zod.null()]).optional(),
+  "analysis": zod.union([zod.object({
+  "id": zod.number().int(),
+  "emailClassification": zod.enum(['RFQ', 'NON_RFQ', 'SUPPLIER_RESPONSE', 'CUSTOMER_INQUIRY', 'INTERNAL', 'UNKNOWN']),
+  "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "confidenceScore": zod.number(),
+  "reasoningSummary": zod.string(),
+  "requiresHumanReview": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "extractedData": zod.record(zod.string(), zod.unknown())
+}),zod.null()]).optional(),
+  "reviewHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
+  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "notes": zod.string(),
+  "createdAt": zod.string()
+})).optional(),
+  "catalog": zod.object({
+  "partNumber": zod.string(),
+  "description": zod.string().optional(),
+  "aircraft": zod.string().optional(),
+  "manufacturer": zod.string().optional(),
+  "manufacturerPartNumber": zod.string().optional(),
+  "alternatePartNumbers": zod.string().optional(),
+  "category": zod.string().optional(),
+  "condition": zod.string().optional(),
+  "certification": zod.string().optional(),
+  "basePrice": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "supplier": zod.string().optional(),
+  "leadTimeDays": zod.number().optional()
+}).optional(),
+  "inventory": zod.object({
+  "partNumber": zod.string(),
+  "availableQty": zod.number().int(),
+  "reservedQty": zod.number().int().optional(),
+  "warehouseLocation": zod.string().optional(),
+  "supplier": zod.string().optional(),
+  "condition": zod.string().optional(),
+  "expectedReplenishmentDate": zod.string().optional()
+}).optional(),
+  "pricing": zod.object({
+  "unitPrice": zod.number(),
+  "subtotal": zod.number(),
+  "discount": zod.number(),
+  "tax": zod.number(),
+  "shippingHandling": zod.number(),
+  "grandTotal": zod.number(),
+  "currency": zod.string()
+}).optional(),
+  "compliance": zod.object({
+  "status": zod.string().optional(),
+  "reasons": zod.array(zod.string()).optional()
+}).optional(),
+  "ragContext": zod.array(zod.object({
+  "content": zod.string().optional(),
+  "metadata": zod.object({
+
+}).passthrough().optional()
+})).optional()
+}))
+
+
+/**
+ * @summary Search the part catalog
+ */
+export const SearchCatalogQueryParams = zod.object({
+  "query": zod.coerce.string()
+})
+
+export const SearchCatalogResponseItem = zod.object({
+  "partNumber": zod.string(),
+  "description": zod.string().optional(),
+  "aircraft": zod.string().optional(),
+  "manufacturer": zod.string().optional(),
+  "manufacturerPartNumber": zod.string().optional(),
+  "alternatePartNumbers": zod.string().optional(),
+  "category": zod.string().optional(),
+  "condition": zod.string().optional(),
+  "certification": zod.string().optional(),
+  "basePrice": zod.number().optional(),
+  "currency": zod.string().optional(),
+  "supplier": zod.string().optional(),
+  "leadTimeDays": zod.number().optional()
+})
+export const SearchCatalogResponse = zod.array(SearchCatalogResponseItem)
+
+
+/**
+ * @summary Get inventory status for a part
+ */
+export const GetInventoryParams = zod.object({
+  "partNumber": zod.coerce.string()
+})
+
+export const GetInventoryResponse = zod.object({
+  "partNumber": zod.string(),
+  "availableQty": zod.number().int(),
+  "reservedQty": zod.number().int().optional(),
+  "warehouseLocation": zod.string().optional(),
+  "supplier": zod.string().optional(),
+  "condition": zod.string().optional(),
+  "expectedReplenishmentDate": zod.string().optional()
+})
+
+
+/**
+ * @summary Calculate pricing for an RFQ item
+ */
+export const CalculatePricingBody = zod.object({
+  "partNumber": zod.string(),
+  "quantity": zod.number().int(),
+  "basePrice": zod.number(),
+  "currency": zod.string(),
+  "condition": zod.string()
+})
+
+export const CalculatePricingResponse = zod.object({
+  "unitPrice": zod.number(),
+  "subtotal": zod.number(),
+  "discount": zod.number(),
+  "tax": zod.number(),
+  "shippingHandling": zod.number(),
+  "grandTotal": zod.number(),
+  "currency": zod.string()
+})
 
 
 /**
@@ -261,7 +857,7 @@ export const GetEmailResponse = zod.object({
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "confidence": zod.number().int(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
   "createdAt": zod.string(),
   "age": zod.string()
 }),zod.null()])
@@ -346,7 +942,7 @@ export const ProcessEmailResponse = zod.object({
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "confidence": zod.number().int(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
   "createdAt": zod.string(),
   "age": zod.string()
 }),zod.null()])
@@ -456,7 +1052,7 @@ export const GetAiReviewResponse = zod.object({
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "confidence": zod.number().int(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
   "createdAt": zod.string(),
   "age": zod.string()
 }),zod.null()])
@@ -473,7 +1069,7 @@ export const GetAiReviewResponse = zod.object({
 }),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
   "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "notes": zod.string(),
@@ -547,7 +1143,7 @@ export const ApproveAiReviewResponse = zod.object({
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "confidence": zod.number().int(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
   "createdAt": zod.string(),
   "age": zod.string()
 }),zod.null()])
@@ -564,7 +1160,7 @@ export const ApproveAiReviewResponse = zod.object({
 }),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
   "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "notes": zod.string(),
@@ -643,7 +1239,7 @@ export const ReclassifyAiReviewResponse = zod.object({
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "confidence": zod.number().int(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
   "createdAt": zod.string(),
   "age": zod.string()
 }),zod.null()])
@@ -660,7 +1256,7 @@ export const ReclassifyAiReviewResponse = zod.object({
 }),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
   "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "notes": zod.string(),
@@ -734,7 +1330,7 @@ export const RejectAiReviewResponse = zod.object({
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "confidence": zod.number().int(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
   "createdAt": zod.string(),
   "age": zod.string()
 }),zod.null()])
@@ -751,7 +1347,7 @@ export const RejectAiReviewResponse = zod.object({
 }),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
   "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "notes": zod.string(),
@@ -836,7 +1432,7 @@ export const UpdateAiReviewResponse = zod.object({
   "requestType": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "confidence": zod.number().int(),
   "priority": zod.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED']),
+  "status": zod.enum(['NEW', 'ANALYZING', 'UNDER_REVIEW', 'PROCESSING', 'NEEDS_HUMAN_REVIEW', 'COMPLETED', 'CLOSED', 'UNDERSTANDING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'APPROVED', 'REJECTED', 'NEEDS_INFORMATION']),
   "createdAt": zod.string(),
   "age": zod.string()
 }),zod.null()])
@@ -853,7 +1449,7 @@ export const UpdateAiReviewResponse = zod.object({
 }),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
   "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
   "notes": zod.string(),
@@ -918,6 +1514,24 @@ export const GetMicrosoftConnectResponse = zod.object({
  * @summary Complete Microsoft 365 connection callback
  */
 export const MicrosoftCallbackResponse = zod.object({
+  "connected": zod.boolean(),
+  "mailbox": zod.string().nullable(),
+  "lastSync": zod.string().nullable(),
+  "message": zod.string(),
+  "configured": zod.boolean(),
+  "developmentMode": zod.boolean(),
+  "demoModeEnabled": zod.boolean()
+})
+
+
+/**
+ * @summary Update Microsoft 365 configuration
+ */
+export const UpdateMicrosoftConfigBody = zod.object({
+  "mailbox": zod.string()
+})
+
+export const UpdateMicrosoftConfigResponse = zod.object({
   "connected": zod.boolean(),
   "mailbox": zod.string().nullable(),
   "lastSync": zod.string().nullable(),

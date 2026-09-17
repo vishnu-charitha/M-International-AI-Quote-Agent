@@ -5,6 +5,50 @@
  * M International AI Quote Agent operations API
  * OpenAPI spec version: 0.1.0
  */
+export interface CatalogItem {
+  partNumber: string;
+  description?: string;
+  aircraft?: string;
+  manufacturer?: string;
+  manufacturerPartNumber?: string;
+  alternatePartNumbers?: string;
+  category?: string;
+  condition?: string;
+  certification?: string;
+  basePrice?: number;
+  currency?: string;
+  supplier?: string;
+  leadTimeDays?: number;
+}
+
+export interface InventoryStatus {
+  partNumber: string;
+  availableQty: number;
+  reservedQty?: number;
+  warehouseLocation?: string;
+  supplier?: string;
+  condition?: string;
+  expectedReplenishmentDate?: string;
+}
+
+export interface PricingRequest {
+  partNumber: string;
+  quantity: number;
+  basePrice: number;
+  currency: string;
+  condition: string;
+}
+
+export interface PricingResponse {
+  unitPrice: number;
+  subtotal: number;
+  discount: number;
+  tax: number;
+  shippingHandling: number;
+  grandTotal: number;
+  currency: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -46,6 +90,12 @@ export const RfqStatus = {
   NEEDS_HUMAN_REVIEW: 'NEEDS_HUMAN_REVIEW',
   COMPLETED: 'COMPLETED',
   CLOSED: 'CLOSED',
+  UNDERSTANDING: 'UNDERSTANDING',
+  VALIDATION_REQUIRED: 'VALIDATION_REQUIRED',
+  READY_FOR_REVIEW: 'READY_FOR_REVIEW',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  NEEDS_INFORMATION: 'NEEDS_INFORMATION',
 } as const;
 
 export type Priority = typeof Priority[keyof typeof Priority];
@@ -92,6 +142,18 @@ export interface Rfq {
   createdAt: string;
   age: string;
 }
+
+export type RfqDetailCompliance = {
+  status?: string;
+  reasons?: string[];
+};
+
+export type RfqDetailRagContextItemMetadata = { [key: string]: unknown };
+
+export type RfqDetailRagContextItem = {
+  content?: string;
+  metadata?: RfqDetailRagContextItemMetadata;
+};
 
 export type EmailAiStatus = typeof EmailAiStatus[keyof typeof EmailAiStatus];
 
@@ -203,6 +265,8 @@ export const ReviewHistoryEntryAction = {
   REJECTED: 'REJECTED',
   RECLASSIFIED: 'RECLASSIFIED',
   EDITED: 'EDITED',
+  REQUESTED_INFO: 'REQUESTED_INFO',
+  STARTED_REVIEW: 'STARTED_REVIEW',
 } as const;
 
 export interface ReviewHistoryEntry {
@@ -216,6 +280,8 @@ export interface ReviewHistoryEntry {
 
 export type RfqDetail = Rfq & ({
   description: string;
+  customerId?: number;
+  customerPhone?: string | null;
   quantity: number;
   aircraft: string;
   notes: string;
@@ -224,6 +290,11 @@ export type RfqDetail = Rfq & ({
   sourceEmail?: EmailDetail | null;
   analysis?: AiAnalysis | null;
   reviewHistory?: ReviewHistoryEntry[];
+  catalog?: CatalogItem;
+  inventory?: InventoryStatus;
+  pricing?: PricingResponse;
+  compliance?: RfqDetailCompliance;
+  ragContext?: RfqDetailRagContextItem[];
 });
 
 export type EmailSyncResultMode = typeof EmailSyncResultMode[keyof typeof EmailSyncResultMode];
@@ -303,6 +374,84 @@ export interface MicrosoftIntegrationStatus {
   configured: boolean;
   developmentMode: boolean;
   demoModeEnabled: boolean;
+}
+
+export interface UpdateMicrosoftConfigInput {
+  mailbox: string;
+}
+
+export interface AnalyzeRfqInput {
+  rawText: string;
+}
+
+export type AnalyzeRfqResultCustomer = {
+  name: string;
+  company: string;
+  email: string;
+  phone?: string;
+};
+
+export type AnalyzeRfqResultItemsItem = {
+  partNumber: string;
+  description?: string;
+  quantity: number;
+  condition?: string;
+};
+
+export type AnalyzeRfqResultRequirements = {
+  deliveryRequirement?: string;
+  urgency?: string;
+};
+
+export interface AnalyzeRfqResult {
+  customer: AnalyzeRfqResultCustomer;
+  items: AnalyzeRfqResultItemsItem[];
+  requirements: AnalyzeRfqResultRequirements;
+  requestType: RequestType;
+  confidenceScore: number;
+  missingInformation: string[];
+}
+
+export type CreateRfqInputCustomer = {
+  name: string;
+  company: string;
+  email: string;
+  phone?: string;
+};
+
+export type CreateRfqInputItemsItem = {
+  partNumber: string;
+  description?: string;
+  quantity: number;
+  condition?: string;
+};
+
+export interface CreateRfqInput {
+  customer: CreateRfqInputCustomer;
+  items: CreateRfqInputItemsItem[];
+  notes?: string;
+  requestType: RequestType;
+  status?: RfqStatus;
+}
+
+export type AddReviewInputAction = typeof AddReviewInputAction[keyof typeof AddReviewInputAction];
+
+
+export const AddReviewInputAction = {
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  REQUESTED_INFO: 'REQUESTED_INFO',
+  STARTED_REVIEW: 'STARTED_REVIEW',
+} as const;
+
+export interface AddReviewInput {
+  action: AddReviewInputAction;
+  notes?: string;
+}
+
+export interface UpdateRfqInput {
+  customerPhone?: string;
+  status?: RfqStatus;
 }
 
 export type AiReviewActionAction = typeof AiReviewActionAction[keyof typeof AiReviewActionAction];
@@ -387,5 +536,9 @@ source?: SourceParameter;
 requestType?: RequestTypeParameter;
 priority?: PriorityParameter;
 status?: StatusParameter;
+};
+
+export type SearchCatalogParams = {
+query: string;
 };
 

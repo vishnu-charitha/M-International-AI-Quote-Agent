@@ -6,14 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ReviewHistoryEntryAction = typeof ReviewHistoryEntryAction[keyof typeof ReviewHistoryEntryAction];
+export type AddReviewInputAction = typeof AddReviewInputAction[keyof typeof AddReviewInputAction];
 
 
-export const ReviewHistoryEntryAction = {
+export const AddReviewInputAction = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
-  RECLASSIFIED: 'RECLASSIFIED',
-  EDITED: 'EDITED',
   REQUESTED_INFO: 'REQUESTED_INFO',
   STARTED_REVIEW: 'STARTED_REVIEW',
 } as const;

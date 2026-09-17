@@ -155,4 +155,20 @@ router.post("/integrations/microsoft/disconnect", async (_req, res) => {
   });
 });
 
+router.post("/integrations/microsoft/config", async (req, res) => {
+  const { mailbox } = req.body;
+  if (!mailbox || typeof mailbox !== "string") {
+    res.status(400).send("Mailbox is required.");
+    return;
+  }
+  
+  if (db) {
+    await db.update(integrationsTable)
+      .set({ mailbox, updatedAt: new Date() })
+      .where(eq(integrationsTable.provider, "microsoft"));
+  }
+  
+  res.json(await microsoftStatus());
+});
+
 export default router;

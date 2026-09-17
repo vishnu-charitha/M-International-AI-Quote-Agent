@@ -16,11 +16,11 @@ import { emailsTable } from "./emails";
 
 export const aiReviewHistoryTable = pgTable("ai_review_history", {
   id: serial("id").primaryKey(),
-  aiAnalysisId: integer("ai_analysis_id").references(() => aiAnalysesTable.id).notNull(),
+  aiAnalysisId: integer("ai_analysis_id").references(() => aiAnalysesTable.id),
   rfqId: integer("rfq_id").references(() => rfqsTable.id).notNull(),
   action: varchar("action", { length: 40 }).notNull(),
-  previousClassification: varchar("previous_classification", { length: 40 }).notNull(),
-  newClassification: varchar("new_classification", { length: 40 }).notNull(),
+  previousClassification: varchar("previous_classification", { length: 40 }),
+  newClassification: varchar("new_classification", { length: 40 }),
   previousExtractedData: jsonb("previous_extracted_data").$type<Record<string, unknown>>(),
   updatedExtractedData: jsonb("updated_extracted_data").$type<Record<string, unknown>>(),
   emailId: integer("email_id").references(() => emailsTable.id),

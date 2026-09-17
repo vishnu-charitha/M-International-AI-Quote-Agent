@@ -26,6 +26,7 @@ type ProxyInit = {
   method?: string;
   headers?: Record<string, string>;
   body?: string;
+  queryParams?: Record<string, string>;
 };
 
 import { db } from "@workspace/db";
@@ -83,21 +84,31 @@ async function getAccessToken() {
   return integration.accessToken;
 }
 
-async function graphRequest<T>(path: string, init?: ProxyInit): Promise<T> {
+async function graphRequest<T>(endpointKey: string, subEndpoint?: string, init?: ProxyInit): Promise<T> {
   const token = await getAccessToken();
-  const url = `https://graph.microsoft.com${path}`;
+  const urlPath = subEndpoint ? `/${endpointKey}/${encodeURIComponent(subEndpoint)}` : `/${endpointKey}`;
+  const url = `http://localhost:8000/api/connector/outlook${urlPath}`;
+
+  const payload = {
+    requestType: init?.method || "GET",
+    queryParams: init?.queryParams || {},
+    requestBody: init?.body ? JSON.parse(init.body) : undefined,
+    requestHeaders: init?.headers || {}
+  };
+
   const response = await fetch(url, {
-    method: init?.method || "GET",
+    method: "POST",
     headers: {
-      ...init?.headers,
-      Authorization: `Bearer ${token}`
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      "X-Python-Proxy": "true"
     },
-    body: init?.body
+    body: JSON.stringify(payload)
   });
   
   if (!response.ok) {
     const message = await response.text().catch(() => "");
-    throw new Error(`Microsoft Graph request failed (${response.status}): ${message || response.statusText}`);
+    throw new Error(`Python Microservice request failed (${response.status}): ${message || response.statusText}`);
   }
   return (await response.json()) as T;
 }
@@ -106,23 +117,29 @@ export async function getMicrosoftProfile() {
   if (!isMicrosoftConfigured()) {
     throw new Error("Microsoft credentials not configured.");
   }
-  return graphRequest<{ displayName?: string; mail?: string; userPrincipalName?: string }>("/v1.0/me?$select=displayName,mail,userPrincipalName");
+  return graphRequest<{ displayName?: string; mail?: string; userPrincipalName?: string }>("ME", undefined, {
+    queryParams: { "$select": "displayName,mail,userPrincipalName" }
+  });
 }
 
 export async function listInboxMessages() {
-  const params = new URLSearchParams({
-    "$select": "id,internetMessageId,conversationId,subject,from,toRecipients,ccRecipients,body,bodyPreview,receivedDateTime,hasAttachments",
-    "$orderby": "receivedDateTime desc",
-    "$top": "25",
-  });
-  const data = await graphRequest<{ value?: GraphMessage[] }>(`/v1.0/me/mailFolders/inbox/messages?${params.toString()}`, {
-    headers: { Prefer: 'outlook.body-content-type="text"' },
+  const data = await graphRequest<{ value?: GraphMessage[] }>("INBOX_MESSAGES", undefined, {
+    queryParams: {
+      "$select": "id,internetMessageId,conversationId,subject,from,toRecipients,ccRecipients,body,bodyPreview,receivedDateTime,hasAttachments",
+      "$orderby": "receivedDateTime desc",
+      "$top": "25"
+    },
+    headers: { Prefer: 'outlook.body-content-type="text"' }
   });
   return data.value ?? [];
 }
 
 export async function listMessageAttachments(messageId: string) {
-  const data = await graphRequest<{ value?: GraphAttachment[] }>(`/v1.0/me/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,size,contentBytes`);
+  const data = await graphRequest<{ value?: GraphAttachment[] }>("MESSAGE_ATTACHMENTS", messageId, {
+    queryParams: {
+      "$select": "id,name,contentType,size,contentBytes"
+    }
+  });
   return data.value ?? [];
 }
 

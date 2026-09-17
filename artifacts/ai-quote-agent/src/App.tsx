@@ -5,8 +5,10 @@ import { OperationsShell } from '@/components/operations-shell';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
-import { DashboardPage, PlaceholderPage, RfqInboxPage, placeholders } from '@/pages/operations';
+import { DashboardPage, PlaceholderPage, RfqInboxPage, PartsExchangePage, placeholders } from '@/pages/operations';
 import { AiReviewDetailPage, AiReviewPageV2, EmailDetailPage, EmailInboxPageV2, RfqDetailPageV2, SettingsPage } from '@/pages/phase-two';
+import { EmailConfigurationPage } from '@/pages/email-configuration';
+import { ManualRfqIntakePage } from '@/pages/rfq-intake';
 import {
   Route,
   Switch,
@@ -25,6 +27,7 @@ function Router() {
         <Switch>
           <Route path="/" component={DashboardPage} />
           <Route path="/rfq-inbox" component={RfqInboxPage} />
+          <Route path="/rfqs/new" component={ManualRfqIntakePage} />
           <Route path="/rfqs/:rfqId" component={RfqDetailPageV2} />
           <Route path="/email-inbox" component={EmailInboxPageV2} />
           <Route path="/emails/:emailId" component={EmailDetailPage} />
@@ -32,6 +35,8 @@ function Router() {
           <Route path="/ai-review/:rfqId" component={AiReviewDetailPage} />
           <Route path="/settings/integrations" component={SettingsPage} />
           <Route path="/settings" component={SettingsPage} />
+          <Route path="/email-configuration" component={EmailConfigurationPage} />
+          <Route path="/parts-exchange" component={PartsExchangePage} />
           {Object.keys(placeholders).map((path) => <Route key={path} path={path}><PlaceholderPage path={path} /></Route>)}
           <Route component={NotFound} />
         </Switch>

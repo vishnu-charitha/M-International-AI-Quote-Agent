@@ -137,7 +137,7 @@ export function RfqInboxPage() {
   const params = useMemo(() => ({ search: search || undefined, source: source ? source as typeof RfqSource[keyof typeof RfqSource] : undefined, requestType: requestType ? requestType as typeof RequestType[keyof typeof RequestType] : undefined, priority: priority ? priority as typeof Priority[keyof typeof Priority] : undefined, status: status ? status as typeof RfqStatus[keyof typeof RfqStatus] : undefined }), [search, source, requestType, priority, status]);
   const rfqs = useListRfqs(params);
   const hasFilters = Boolean(search || source || requestType || priority || status);
-  return <div className="fade-up"><PageHeading eyebrow="Command center / intake" title="RFQ inbox" description="Search, triage and route every request from one operational queue." action={<div className="hidden items-center gap-2 text-[10px] text-[hsl(var(--muted-foreground))] sm:flex"><span className="h-2 w-2 rounded-full bg-emerald-500" /> API connected</div>} /><div className="mb-5 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-3"><div className="grid gap-2 lg:grid-cols-[1fr_repeat(4,150px)_auto]"><SearchField value={search} onChange={setSearch} /><FilterSelect label="Source" value={source} onChange={setSource} options={Object.values(RfqSource)} /><FilterSelect label="Request type" value={requestType} onChange={setRequestType} options={Object.values(RequestType)} /><FilterSelect label="Priority" value={priority} onChange={setPriority} options={Object.values(Priority)} /><FilterSelect label="Status" value={status} onChange={setStatus} options={Object.values(RfqStatus)} /></div>{hasFilters && <button data-testid="button-clear-filters" onClick={() => { setSearch(''); setSource(''); setRequestType(''); setPriority(''); setStatus(''); }} className="mt-3 text-[10px] font-bold text-[hsl(var(--primary))] hover:underline">Clear all filters</button>}</div><div className="mb-3 flex items-center justify-between"><div className="flex items-center gap-2 text-[11px] text-[hsl(var(--muted-foreground))]"><Inbox size={14} />{rfqs.data ? `${toArray(rfqs.data).length} requests` : 'Loading queue'}</div><button data-testid="button-refresh-rfq-list" onClick={() => rfqs.refetch()} className="inline-flex items-center gap-1.5 rounded px-2 py-1.5 text-[10px] font-bold text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]"><RefreshCw size={12} /> Refresh</button></div>{rfqs.isLoading ? <LoadingRows count={7} /> : rfqs.isError ? <QueryState error onRetry={() => rfqs.refetch()} /> : <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]"><RfqTable rfqs={toArray<typeof rfqs.data extends Array<infer U> ? U : any>(rfqs.data)} /></div>}</div>;
+  return <div className="fade-up"><PageHeading eyebrow="Command center / intake" title="RFQ inbox" description="Search, triage and route every request from one operational queue." action={<div className="flex items-center gap-3"><Link href="/rfqs/new" className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-4 py-2.5 text-[11px] font-extrabold text-[hsl(var(--primary-foreground))] shadow-sm transition-transform hover:-translate-y-0.5">Create RFQ</Link><div className="hidden items-center gap-2 text-[10px] text-[hsl(var(--muted-foreground))] sm:flex"><span className="h-2 w-2 rounded-full bg-emerald-500" /> API connected</div></div>} /><div className="mb-5 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-3"><div className="grid gap-2 lg:grid-cols-[1fr_repeat(4,150px)_auto]"><SearchField value={search} onChange={setSearch} /><FilterSelect label="Source" value={source} onChange={setSource} options={Object.values(RfqSource)} /><FilterSelect label="Request type" value={requestType} onChange={setRequestType} options={Object.values(RequestType)} /><FilterSelect label="Priority" value={priority} onChange={setPriority} options={Object.values(Priority)} /><FilterSelect label="Status" value={status} onChange={setStatus} options={Object.values(RfqStatus)} /></div>{hasFilters && <button data-testid="button-clear-filters" onClick={() => { setSearch(''); setSource(''); setRequestType(''); setPriority(''); setStatus(''); }} className="mt-3 text-[10px] font-bold text-[hsl(var(--primary))] hover:underline">Clear all filters</button>}</div><div className="mb-3 flex items-center justify-between"><div className="flex items-center gap-2 text-[11px] text-[hsl(var(--muted-foreground))]"><Inbox size={14} />{rfqs.data ? `${toArray(rfqs.data).length} requests` : 'Loading queue'}</div><button data-testid="button-refresh-rfq-list" onClick={() => rfqs.refetch()} className="inline-flex items-center gap-1.5 rounded px-2 py-1.5 text-[10px] font-bold text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]"><RefreshCw size={12} /> Refresh</button></div>{rfqs.isLoading ? <LoadingRows count={7} /> : rfqs.isError ? <QueryState error onRetry={() => rfqs.refetch()} /> : <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]"><RfqTable rfqs={toArray<typeof rfqs.data extends Array<infer U> ? U : any>(rfqs.data)} /></div>}</div>;
 }
 
 function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: string[] }) {
@@ -208,9 +208,318 @@ export function AiReviewPage() {
 }
 
 function ReviewStat({ label, value }: { label: string; value: string }) { return <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4"><div className="eyebrow mb-3">{label}</div><div className="mono text-[22px] font-medium tracking-[-.06em]">{value}</div></div>; }
+export function NewPartsPurchasePage() {
+  const rfqs = useListRfqs({
+    requestType: RequestType.NEW_PART_PURCHASE,
+  });
+
+  const [, setLocation] = useLocation();
+
+  if (rfqs.isLoading) {
+    return (
+      <div className="fade-up">
+        <PageHeading
+          eyebrow="Workflow / 02"
+          title="New parts purchase"
+          description="Review new-part requirements and prepare supplier quotations."
+        />
+
+        <LoadingRows count={5} />
+      </div>
+    );
+  }
+
+  if (rfqs.isError) {
+    return (
+      <div className="fade-up">
+        <PageHeading
+          eyebrow="Workflow / 02"
+          title="New parts purchase"
+          description="Review new-part requirements and prepare supplier quotations."
+        />
+
+        <QueryState
+          error
+          onRetry={() => rfqs.refetch()}
+        />
+      </div>
+    );
+  }
+
+  const records = toArray<any>(rfqs.data);
+
+  return (
+    <div className="fade-up">
+      <PageHeading
+        eyebrow="Workflow / 02"
+        title="New parts purchase"
+        description="Review new-part requirements and prepare supplier quotations."
+        action={
+          <div className="text-[10px] text-[hsl(var(--muted-foreground))]">
+            {records.length} purchase requests
+          </div>
+        }
+      />
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+          <div className="eyebrow mb-2">Total requests</div>
+          <div className="mono text-2xl font-medium">
+            {records.length}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+          <div className="eyebrow mb-2">Processing</div>
+          <div className="mono text-2xl font-medium">
+            {
+              records.filter(
+                (rfq) => rfq.status === "PROCESSING",
+              ).length
+            }
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+          <div className="eyebrow mb-2">RFQs created</div>
+          <div className="mono text-2xl font-medium">
+            {
+              records.filter(
+                (rfq) => rfq.status === "RFQ_CREATED",
+              ).length
+            }
+          </div>
+        </div>
+      </div>
+
+      {records.length === 0 ? (
+        <QueryState
+          empty
+          label="No new-part purchase requests found"
+        />
+      ) : (
+        <div className="space-y-3">
+          {records.map((rfq) => (
+            <button
+              key={rfq.id}
+              type="button"
+              onClick={() => setLocation(`/rfqs/${rfq.id}`)}
+              className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 text-left transition-colors hover:bg-[hsl(var(--muted)/.45)]"
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                  <div className="mb-2 flex flex-wrap items-center gap-3">
+                    <span className="mono text-[11px] font-medium text-[hsl(var(--primary))]">
+                      {rfq.rfqNumber || `RFQ-${rfq.id}`}
+                    </span>
+
+                    <StatusBadge value={rfq.status} />
+                  </div>
+
+                  <h2 className="truncate text-[14px] font-extrabold">
+                    {rfq.emailSubject || "New part purchase request"}
+                  </h2>
+
+                  <p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">
+                    {rfq.customerCompany || "Unknown customer"} · Part{" "}
+                    {rfq.partNumber || "Not specified"}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+                  <DataPoint
+                    label="Quantity"
+                    value={String(rfq.quantity ?? "—")}
+                    mono
+                  />
+
+                  <DataPoint
+                    label="Priority"
+                    value={readable(rfq.priority || "—")}
+                  />
+
+                  <DataPoint
+                    label="Confidence"
+                    value={
+                      rfq.confidence == null
+                        ? "—"
+                        : percent(rfq.confidence)
+                    }
+                    mono
+                  />
+
+                  <div className="flex items-center justify-end">
+                    <ArrowRight
+                      size={16}
+                      className="text-[hsl(var(--muted-foreground))]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+export function PartsExchangePage() {
+  const rfqs = useListRfqs({
+    requestType: RequestType.PARTS_EXCHANGE,
+  });
+
+  const [, setLocation] = useLocation();
+
+  if (rfqs.isLoading) {
+    return (
+      <div className="fade-up">
+        <PageHeading
+          eyebrow="Workflow / 01"
+          title="Parts exchange"
+          description="Coordinate exchange requests, core returns and replacement part routing from one queue."
+        />
+
+        <LoadingRows count={5} />
+      </div>
+    );
+  }
+
+  if (rfqs.isError) {
+    return (
+      <div className="fade-up">
+        <PageHeading
+          eyebrow="Workflow / 01"
+          title="Parts exchange"
+          description="Coordinate exchange requests, core returns and replacement part routing from one queue."
+        />
+
+        <QueryState
+          error
+          onRetry={() => rfqs.refetch()}
+        />
+      </div>
+    );
+  }
+
+  const records = toArray<any>(rfqs.data);
+
+  return (
+    <div className="fade-up">
+      <PageHeading
+        eyebrow="Workflow / 01"
+        title="Parts exchange"
+        description="Coordinate exchange requests, core returns and replacement part routing from one queue."
+        action={
+          <div className="text-[10px] text-[hsl(var(--muted-foreground))]">
+            {records.length} exchange requests
+          </div>
+        }
+      />
+
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+          <div className="eyebrow mb-2">Total requests</div>
+          <div className="mono text-2xl font-medium">
+            {records.length}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+          <div className="eyebrow mb-2">Processing</div>
+          <div className="mono text-2xl font-medium">
+            {
+              records.filter(
+                (rfq) => rfq.status === "PROCESSING",
+              ).length
+            }
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
+          <div className="eyebrow mb-2">RFQs created</div>
+          <div className="mono text-2xl font-medium">
+            {
+              records.filter(
+                (rfq) => rfq.status === "RFQ_CREATED",
+              ).length
+            }
+          </div>
+        </div>
+      </div>
+
+      {records.length === 0 ? (
+        <QueryState
+          empty
+          label="No parts exchange requests found"
+        />
+      ) : (
+        <div className="space-y-3">
+          {records.map((rfq) => (
+            <button
+              key={rfq.id}
+              type="button"
+              onClick={() => setLocation(`/rfqs/${rfq.id}`)}
+              className="w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 text-left transition-colors hover:bg-[hsl(var(--muted)/.45)]"
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                  <div className="mb-2 flex flex-wrap items-center gap-3">
+                    <span className="mono text-[11px] font-medium text-[hsl(var(--primary))]">
+                      {rfq.rfqNumber || `RFQ-${rfq.id}`}
+                    </span>
+
+                    <StatusBadge value={rfq.status} />
+                  </div>
+
+                  <h2 className="truncate text-[14px] font-extrabold">
+                    {rfq.emailSubject || "Parts exchange request"}
+                  </h2>
+
+                  <p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">
+                    {rfq.customerCompany || "Unknown customer"} · Part{" "}
+                    {rfq.partNumber || "Not specified"}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+                  <DataPoint
+                    label="Quantity"
+                    value={String(rfq.quantity ?? "—")}
+                    mono
+                  />
+
+                  <DataPoint
+                    label="Priority"
+                    value={readable(rfq.priority || "—")}
+                  />
+
+                  <DataPoint
+                    label="Confidence"
+                    value={
+                      rfq.confidence == null
+                        ? "—"
+                        : percent(rfq.confidence)
+                    }
+                    mono
+                  />
+
+                  <div className="flex items-center justify-end">
+                    <ArrowRight
+                      size={16}
+                      className="text-[hsl(var(--muted-foreground))]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const placeholders: Record<string, { eyebrow: string; title: string; description: string; icon: ComponentType<{ size?: number }> }> = {
-  '/parts-exchange': { eyebrow: 'Workflow / 01', title: 'Parts exchange', description: 'Coordinate exchange requests, core returns and replacement part routing from one queue.', icon: PackageOpen },
   '/new-parts-purchase': { eyebrow: 'Workflow / 02', title: 'New parts purchase', description: 'Track purchase requirements and supplier handoffs as this workflow comes online.', icon: ShoppingCartIcon },
   '/repair-overhaul': { eyebrow: 'Workflow / 03', title: 'Repair & overhaul', description: 'A dedicated workspace for repair, overhaul and inspection requests is being prepared.', icon: SettingsIcon },
   '/compliance': { eyebrow: 'Operations module', title: 'Compliance', description: 'Certification, traceability and release controls will live here.', icon: ShieldIcon },
@@ -220,7 +529,6 @@ const placeholders: Record<string, { eyebrow: string; title: string; description
   '/orders': { eyebrow: 'Operations module', title: 'Orders', description: 'Order conversion and handoff tracking will live here.', icon: ClipboardIcon },
   '/fulfillment': { eyebrow: 'Operations module', title: 'Fulfillment', description: 'Fulfillment status and operational exceptions will live here.', icon: PackageOpen },
   '/shipping': { eyebrow: 'Operations module', title: 'Shipping', description: 'Dispatch, carrier and delivery milestones will live here.', icon: TruckIcon },
-  '/email-configuration': { eyebrow: 'Administration', title: 'Email configuration', description: 'Configure monitored mailboxes and ingestion rules when the administration module is enabled.', icon: MailIcon },
   '/users': { eyebrow: 'Administration', title: 'Users', description: 'Manage roles, access and operator coverage when the administration module is enabled.', icon: UserIcon },
   '/settings': { eyebrow: 'Administration', title: 'Settings', description: 'Workspace preferences and platform controls will live here.', icon: SettingsIcon },
 };

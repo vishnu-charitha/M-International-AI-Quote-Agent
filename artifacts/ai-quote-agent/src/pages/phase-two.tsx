@@ -6,6 +6,7 @@ import {
   AiReviewStatus,
   Priority,
   RequestType,
+  RfqStatus,
   getGetAiReviewQueryKey,
   getGetEmailQueryKey,
   getGetMicrosoftConnectQueryKey,
@@ -28,8 +29,11 @@ import {
   useReclassifyAiReview,
   useSyncEmails,
   useUpdateAiReview,
+  useUpdateRfq,
+  useAddRfqReview,
 } from '@workspace/api-client-react';
 import type { EmailDetail } from '@workspace/api-client-react';
+import { useToast } from '@/hooks/use-toast';
 import {
   AlertCircle,
   ArrowLeft,
@@ -201,12 +205,308 @@ export function RfqDetailPageV2() {
   const params = useParams<{ rfqId: string }>();
   const id = Number(params.rfqId);
   const rfq = useGetRfq(id, { query: { enabled: Number.isFinite(id), queryKey: getGetRfqQueryKey(id) } });
+  const updateRfq = useUpdateRfq();
+  const addReview = useAddRfqReview();
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showRequestInfoModal, setShowRequestInfoModal] = useState(false);
+
+  useEffect(() => {
+    if (rfq.data && (rfq.data as any).customerPhone) {
+      setCustomerPhone((rfq.data as any).customerPhone);
+    }
+  }, [rfq.data]);
+
   if (rfq.isLoading) return <><PageHeading eyebrow="RFQ record" title="Loading request" /><LoadingRows count={6} /></>;
   if (rfq.isError || !rfq.data) return <><PageHeading eyebrow="RFQ record" title="Request unavailable" /><QueryState error onRetry={() => rfq.refetch()} /></>;
+  
   const item = rfq.data;
-  const extended = item as typeof item & { sourceEmail?: EmailDetail | null; analysis?: { reasoningSummary?: string; confidenceScore?: number; extractedData?: Record<string, unknown> } | null; reviewHistory?: Array<{ id: number; action: string; createdAt: string; notes: string }> };
-  return <div className="fade-up"><button data-testid="button-back-rfq-record" onClick={() => setLocation('/rfq-inbox')} className="mb-6 inline-flex items-center gap-2 text-[11px] font-bold text-[hsl(var(--muted-foreground))]"><ArrowLeft size={14} /> Back to RFQ inbox</button><PageHeading eyebrow={`RFQ record / ${item.rfqNumber}`} title={item.customerCompany} description={`${item.partNumber} · received ${item.age}`} action={<StatusBadge value={item.status} />} /><div className="grid gap-6 xl:grid-cols-[1.2fr_.8fr]"><section className="space-y-5"><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="eyebrow mb-3">Request brief</div><h2 className="text-[17px] font-extrabold">{item.emailSubject}</h2><p className="mt-4 text-[13px] leading-7 text-[hsl(var(--muted-foreground))]">{item.description}</p><div className="mt-6 grid gap-4 border-t border-[hsl(var(--border))] pt-5 sm:grid-cols-3"><Info label="Part number" value={item.partNumber} /><Info label="Quantity" value={String(item.quantity)} /><Info label="Aircraft" value={item.aircraft} /></div></div><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-2">Operator notes</div><p className="text-[11px] leading-6 text-[hsl(var(--muted-foreground))]">{item.notes || 'No operator notes have been added to this record.'}</p></div>{extended.sourceEmail && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="mb-3 flex items-center justify-between"><div className="eyebrow">Source email</div><Link data-testid="link-rfq-source-email" href={`/emails/${extended.sourceEmail.id}`} className="text-[10px] font-bold text-[hsl(var(--primary))]">Open message <ArrowRight size={12} className="ml-1 inline" /></Link></div><div className="text-[12px] font-bold">{extended.sourceEmail.subject}</div><div className="mt-2 line-clamp-4 whitespace-pre-wrap text-[11px] leading-6 text-[hsl(var(--muted-foreground))]">{extended.sourceEmail.bodyText}</div></div>}{extended.analysis && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="eyebrow mb-3">AI analysis</div><ConfidenceBar value={extended.analysis.confidenceScore ?? item.confidence} /><p className="mt-3 text-[11px] leading-5 text-[hsl(var(--muted-foreground))]">{extended.analysis.reasoningSummary || 'No reasoning summary was returned.'}</p></div>}</section><aside className="space-y-5"><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Request metadata</div><div className="space-y-4"><Info label="Customer" value={item.customer} /><Info label="Sender" value={item.sender} /><Info label="Source" value={readable(item.source)} /><Info label="Request type" value={readable(item.requestType)} /><Info label="Priority" value={readable(item.priority)} /></div></div>{extended.analysis?.extractedData && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Extracted items</div><div className="space-y-3">{Object.entries(extended.analysis.extractedData).slice(0, 8).map(([key, value]) => <Info key={key} label={readable(key)} value={String(value ?? '—')} />)}</div></div>}{extended.reviewHistory && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Review history</div>{extended.reviewHistory.length ? extended.reviewHistory.map((entry) => <div key={entry.id} className="mb-3 border-l-2 border-[hsl(var(--accent))] pl-3"><div className="text-[11px] font-bold">{readable(entry.action)}</div><div className="text-[10px] text-[hsl(var(--muted-foreground))]">{formatDate(entry.createdAt)}</div></div>) : <div className="text-[11px] text-[hsl(var(--muted-foreground))]">No review history available.</div>}</div>}</aside></div></div>;
+  const extended = item as typeof item & { customerPhone?: string | null; sourceEmail?: EmailDetail | null; analysis?: { reasoningSummary?: string; confidenceScore?: number; extractedData?: Record<string, unknown> } | null; reviewHistory?: Array<{ id: number; action: string; createdAt: string; notes: string }>; catalog?: any; inventory?: any; pricing?: any; compliance?: { status: string; reasons: string[] }; ragContext?: Array<{ content: string; metadata: any }> };
+  
+  const isValidationRequired = item.status === RfqStatus.VALIDATION_REQUIRED;
+  
+  const handleSaveAndContinue = () => {
+    updateRfq.mutate({
+      rfqId: id,
+      data: {
+        customerPhone,
+        status: RfqStatus.READY_FOR_REVIEW
+      }
+    }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetRfqQueryKey(id) });
+        queryClient.invalidateQueries({ queryKey: getListRfqsQueryKey() });
+        toast({ title: 'Success', description: 'Customer phone updated.' });
+      }
+    });
+  };
+
+  const handleReviewAction = (action: 'STARTED_REVIEW' | 'APPROVED' | 'REJECTED' | 'REQUESTED_INFO') => {
+    if ((action === 'REJECTED' || action === 'REQUESTED_INFO') && !reviewNotes.trim()) {
+      toast({ title: 'Validation Error', description: 'Notes are required for this action.', variant: 'destructive' });
+      return;
+    }
+    
+    addReview.mutate({
+      rfqId: id,
+      data: { action, notes: reviewNotes }
+    }, {
+      onSuccess: (response) => {
+        queryClient.invalidateQueries({ queryKey: getGetRfqQueryKey(id) });
+        queryClient.invalidateQueries({ queryKey: getListRfqsQueryKey() });
+        toast({ title: 'Success', description: `RFQ status updated to ${response.status}.` });
+        setReviewNotes('');
+        setShowRejectModal(false);
+        setShowRequestInfoModal(false);
+      },
+      onError: (err) => {
+        toast({ title: 'Error', description: 'Failed to apply review action.', variant: 'destructive' });
+      }
+    });
+  };
+
+  return <div className="fade-up"><button data-testid="button-back-rfq-record" onClick={() => setLocation('/rfq-inbox')} className="mb-6 inline-flex items-center gap-2 text-[11px] font-bold text-[hsl(var(--muted-foreground))]"><ArrowLeft size={14} /> Back to RFQ inbox</button><PageHeading eyebrow={`RFQ record / ${item.rfqNumber}`} title={item.customerCompany} description={`${item.partNumber} · received ${item.age}`} action={<StatusBadge value={item.status} />} />
+  
+  {(item.status === 'READY_FOR_REVIEW' || item.status === 'NEEDS_HUMAN_REVIEW') && (
+    <div className="mb-6 rounded-lg border border-blue-300 bg-blue-50 p-6 shadow-sm">
+      <div className="flex items-start gap-4">
+        <div className="mt-1 flex shrink-0 items-center justify-center rounded-full bg-blue-200 p-2 text-blue-700">
+          <CheckCircle2 size={18} strokeWidth={2.5} />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-[14px] font-extrabold text-blue-900">Ready for Human Review</h3>
+          <p className="mt-1 text-[12px] leading-relaxed text-blue-800/90">
+            This RFQ has passed validation and is waiting for an operator to review it and generate a quote.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <Button 
+              onClick={() => handleReviewAction('STARTED_REVIEW')}
+              disabled={addReview.isPending}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              {addReview.isPending ? 'Starting...' : 'Start Review'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {item.status === 'UNDER_REVIEW' && (
+    <div className="mb-6 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-sm">
+      <div className="eyebrow mb-3">Operator Review</div>
+      <label className="block mb-4">
+        <span className="text-[11px] font-bold mb-2 block text-[hsl(var(--muted-foreground))]">Review Notes (Required for Reject/Request Info)</span>
+        <textarea 
+          value={reviewNotes}
+          onChange={(e) => setReviewNotes(e.target.value)}
+          rows={3} 
+          className="w-full resize-y rounded-md border border-[hsl(var(--input))] bg-[hsl(var(--card))] p-3 text-[12px] outline-none focus:border-[hsl(var(--primary))]" 
+          placeholder="Enter any notes about your decision..."
+        />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <Button disabled={addReview.isPending} onClick={() => handleReviewAction('APPROVED')} className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]">
+          <Check size={13} className="mr-1" /> Approve RFQ
+        </Button>
+        <Button disabled={addReview.isPending} onClick={() => setShowRequestInfoModal(true)} className="border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100">
+          <AlertCircle size={13} className="mr-1" /> Request Information
+        </Button>
+        <Button disabled={addReview.isPending} onClick={() => setShowRejectModal(true)} className="border border-red-200 bg-red-50 text-red-700 hover:bg-red-100">
+          <X size={13} className="mr-1" /> Reject RFQ
+        </Button>
+      </div>
+    </div>
+  )}
+
+  {item.status === 'APPROVED' && (
+    <div className="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 p-6 shadow-sm flex items-center justify-between">
+      <div>
+        <h3 className="text-[14px] font-extrabold text-emerald-900">RFQ Approved</h3>
+        <p className="mt-1 text-[12px] leading-relaxed text-emerald-800/90">
+          This request has been approved and is ready for quoting.
+        </p>
+      </div>
+      <Button className="bg-emerald-600 text-white hover:bg-emerald-700">
+        Generate Quote
+      </Button>
+    </div>
+  )}
+
+  {isValidationRequired && (
+    <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-6 shadow-sm">
+      <div className="flex items-start gap-4">
+        <div className="mt-1 flex shrink-0 items-center justify-center rounded-full bg-amber-200 p-2 text-amber-700">
+          <AlertCircle size={18} strokeWidth={2.5} />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-[14px] font-extrabold text-amber-900">Missing Information: Customer Phone Number</h3>
+          <p className="mt-1 text-[12px] leading-relaxed text-amber-800/90">
+            This request cannot proceed to quoting until the customer's phone number is provided. Enter it below to resume the RFQ.
+          </p>
+          <div className="mt-5 grid max-w-sm gap-2">
+            <input 
+              type="tel"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              placeholder="e.g. +1 (555) 0123"
+              className="h-10 w-full rounded-md border border-amber-300 bg-white px-3 text-[12px] outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+            />
+          </div>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <Button 
+              onClick={handleSaveAndContinue}
+              disabled={!customerPhone || updateRfq.isPending}
+              className="bg-amber-600 text-white hover:bg-amber-700"
+            >
+              {updateRfq.isPending ? 'Saving...' : 'Save & Continue'}
+            </Button>
+            <Button 
+              onClick={() => setShowRequestModal(true)}
+              className="border border-amber-300 bg-white text-amber-800 hover:bg-amber-100"
+            >
+              Request Missing Information
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <div className="mb-6 grid gap-6 xl:grid-cols-2">
+    {extended.catalog && (
+      <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-sm">
+        <div className="eyebrow mb-3">Supporting Information</div>
+        <div className="space-y-4">
+          <div>
+            <div className="text-[11px] font-bold text-[hsl(var(--muted-foreground))]">Catalog Match</div>
+            <div className="mt-1 flex items-center justify-between">
+              <div className="text-[13px] font-extrabold">{extended.catalog.partNumber}</div>
+              <StatusBadge value="VERIFIED" />
+            </div>
+            <div className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">{extended.catalog.description}</div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="text-[11px] font-bold text-[hsl(var(--muted-foreground))]">Available Inventory</div>
+              <div className="text-[13px] font-extrabold">{extended.inventory?.availableQty ?? 0} units</div>
+              <div className="text-[10px] text-[hsl(var(--muted-foreground))]">{extended.inventory?.warehouseLocation ?? 'Unknown Location'}</div>
+            </div>
+            <div>
+              <div className="text-[11px] font-bold text-[hsl(var(--muted-foreground))]">Unit Base Price</div>
+              <div className="text-[13px] font-extrabold">${extended.catalog.basePrice} {extended.catalog.currency}</div>
+              <div className="text-[10px] text-[hsl(var(--muted-foreground))]">Condition: {extended.catalog.condition}</div>
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] font-bold text-[hsl(var(--muted-foreground))]">Compliance Status</div>
+            <div className="mt-1">
+              <StatusBadge value={extended.compliance?.status ?? 'UNKNOWN'} />
+            </div>
+            {(extended.compliance?.reasons?.length ?? 0) > 0 && (
+              <ul className="mt-2 list-inside list-disc text-[10px] text-amber-700">
+                {extended.compliance?.reasons?.map((r, i) => <li key={i}>{String(r)}</li>)}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {extended.ragContext && extended.ragContext.length > 0 && (
+      <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-sm">
+        <div className="eyebrow mb-3">AI Retrieved Context</div>
+        <div className="space-y-3">
+          {extended.ragContext.map((ctx, idx) => (
+            <div key={idx} className="rounded border border-[hsl(var(--border))] p-3">
+              <p className="text-[11px] leading-5 text-[hsl(var(--foreground)/.8)]">"{ctx.content}"</p>
+              <div className="mt-2 text-[9px] font-bold text-[hsl(var(--primary))]">Source: {String(ctx.metadata?.source ?? 'Knowledge Base')}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </div>
+
+  <div className="grid gap-6 xl:grid-cols-[1.2fr_.8fr]"><section className="space-y-5"><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="eyebrow mb-3">Request brief</div><h2 className="text-[17px] font-extrabold">{item.emailSubject || 'Manual Entry'}</h2><p className="mt-4 text-[13px] leading-7 text-[hsl(var(--muted-foreground))]">{extended.description}</p><div className="mt-6 grid gap-4 border-t border-[hsl(var(--border))] pt-5 sm:grid-cols-3"><Info label="Part number" value={item.partNumber} /><Info label="Quantity" value={String(extended.quantity ?? 1)} /><Info label="Aircraft" value={extended.aircraft} /></div></div><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-2">Operator notes</div><p className="text-[11px] leading-6 text-[hsl(var(--muted-foreground))]">{extended.notes || 'No operator notes have been added to this record.'}</p></div>{extended.sourceEmail && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="mb-3 flex items-center justify-between"><div className="eyebrow">Source email</div><Link data-testid="link-rfq-source-email" href={`/emails/${extended.sourceEmail.id}`} className="text-[10px] font-bold text-[hsl(var(--primary))]">Open message <ArrowRight size={12} className="ml-1 inline" /></Link></div><div className="text-[12px] font-bold">{extended.sourceEmail.subject}</div><div className="mt-2 line-clamp-4 whitespace-pre-wrap text-[11px] leading-6 text-[hsl(var(--muted-foreground))]">{extended.sourceEmail.bodyText}</div></div>}{extended.analysis && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="eyebrow mb-3">AI analysis</div><ConfidenceBar value={extended.analysis.confidenceScore ?? item.confidence} /><p className="mt-3 text-[11px] leading-5 text-[hsl(var(--muted-foreground))]">{extended.analysis.reasoningSummary || 'No reasoning summary was returned.'}</p></div>}</section><aside className="space-y-5"><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Request metadata</div><div className="space-y-4"><Info label="Customer" value={item.customer} /><Info label="Phone" value={extended.customerPhone} /><Info label="Sender" value={extended.sender} /><Info label="Source" value={readable(item.source)} /><Info label="Request type" value={readable(item.requestType)} /><Info label="Priority" value={readable(item.priority)} /></div></div>{extended.analysis?.extractedData && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Extracted items</div><div className="space-y-3">{Object.entries(extended.analysis.extractedData).slice(0, 8).map(([key, value]) => <Info key={key} label={readable(key)} value={String(value ?? '—')} />)}</div></div>}{extended.reviewHistory && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Review history</div>{extended.reviewHistory.length ? extended.reviewHistory.map((entry) => <div key={entry.id} className="mb-3 border-l-2 border-[hsl(var(--accent))] pl-3"><div className="text-[11px] font-bold">{readable(entry.action)}</div><div className="text-[10px] text-[hsl(var(--muted-foreground))]">{formatDate(entry.createdAt)}</div></div>) : <div className="text-[11px] text-[hsl(var(--muted-foreground))]">No review history available.</div>}</div>}</aside></div>
+  
+  {showRequestModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-xl bg-[hsl(var(--card))] shadow-2xl overflow-hidden fade-up">
+        <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-5 py-4 bg-[hsl(var(--muted)/.3)]">
+          <h2 className="text-[15px] font-extrabold text-[hsl(var(--foreground))]">Request Information</h2>
+          <button onClick={() => setShowRequestModal(false)} className="rounded-full p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--accent-foreground))] transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="p-6">
+          <p className="mb-4 text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+            Copy the following message to request the missing information from the customer.
+          </p>
+          <div className="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--muted)/.3)] p-4">
+            <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-[hsl(var(--foreground)/.9)] font-medium">
+              {`Hello ${item.customer},\n\nWe are processing your request (${item.rfqNumber}) for ${item.partNumber}, but we are missing a required phone number to proceed.\n\nPlease reply to this email with your phone number.\n\nThank you,\nM International Quote Agent`}
+            </p>
+          </div>
+          <div className="mt-6 flex justify-end gap-3">
+            <Button onClick={() => setShowRequestModal(false)} className="border border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]">
+              Close
+            </Button>
+            <Button onClick={() => {
+              navigator.clipboard.writeText(`Hello ${item.customer},\n\nWe are processing your request (${item.rfqNumber}) for ${item.partNumber}, but we are missing a required phone number to proceed.\n\nPlease reply to this email with your phone number.\n\nThank you,\nM International Quote Agent`);
+              setShowRequestModal(false);
+            }} className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-90">
+              <CheckCircle2 size={14} className="mr-1" /> Copy Message
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {showRequestInfoModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-xl bg-[hsl(var(--card))] shadow-2xl overflow-hidden fade-up">
+        <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-5 py-4 bg-[hsl(var(--muted)/.3)]">
+          <h2 className="text-[15px] font-extrabold text-[hsl(var(--foreground))]">Request Information</h2>
+          <button onClick={() => setShowRequestInfoModal(false)} className="rounded-full p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] transition-colors"><X size={16} /></button>
+        </div>
+        <div className="p-6">
+          <p className="mb-4 text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">Please ensure you have entered notes explaining what information is missing before continuing.</p>
+          <div className="mt-6 flex justify-end gap-3">
+            <Button onClick={() => setShowRequestInfoModal(false)} className="border border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]">Cancel</Button>
+            <Button disabled={!reviewNotes.trim() || addReview.isPending} onClick={() => handleReviewAction('REQUESTED_INFO')} className="bg-amber-600 text-white hover:bg-amber-700">Confirm Request Info</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {showRejectModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-xl bg-[hsl(var(--card))] shadow-2xl overflow-hidden fade-up">
+        <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-5 py-4 bg-[hsl(var(--muted)/.3)]">
+          <h2 className="text-[15px] font-extrabold text-[hsl(var(--foreground))]">Reject RFQ</h2>
+          <button onClick={() => setShowRejectModal(false)} className="rounded-full p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] transition-colors"><X size={16} /></button>
+        </div>
+        <div className="p-6">
+          <p className="mb-4 text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">Are you sure you want to reject this RFQ? You must provide a reason in the review notes before confirming.</p>
+          <div className="mt-6 flex justify-end gap-3">
+            <Button onClick={() => setShowRejectModal(false)} className="border border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]">Cancel</Button>
+            <Button disabled={!reviewNotes.trim() || addReview.isPending} onClick={() => handleReviewAction('REJECTED')} className="bg-red-600 text-white hover:bg-red-700">Confirm Rejection</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+  
+  </div>;
 }
 
 export function SettingsPage() {

@@ -110,3 +110,83 @@ export async function analyzeRfqEmail(input: AnalysisInput): Promise<Phase2Analy
   const parsed = JSON.parse(content) as Omit<Phase2Analysis, "id" | "developmentMode">;
   return { ...parsed, id: input.emailId, developmentMode: false };
 }
+
+export async function analyzeManualRfq(rawText: string) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("OPENROUTER_API_KEY is required in production mode");
+    }
+    // Fallback logic for manual RFQ
+    const content = rawText.toLowerCase();
+    const partNumber = content.match(/\b(?:pn|part(?:\s+number)?)[:\s-]*([a-z0-9]+(?:-[a-z0-9]+)+)\b/i)?.[1]?.toUpperCase() ?? "UNKNOWN";
+    const quantity = Number(content.match(/\b(?:qty|quantity|units?)[:\s]*(\d+)\b/i)?.[1] ?? 1);
+    const requestType = content.includes("overhaul")
+      ? "OVERHAUL"
+      : content.includes("repair")
+        ? "REPAIR"
+        : content.includes("exchange") || content.includes("core")
+          ? "PARTS_EXCHANGE"
+          : partNumber === "UNKNOWN"
+            ? "UNKNOWN"
+            : "NEW_PART_PURCHASE";
+    const confidenceScore = partNumber === "UNKNOWN" ? 0.48 : requestType === "UNKNOWN" ? 0.62 : 0.95;
+    const missingInformation = partNumber === "UNKNOWN" ? ["Part number is missing"] : [];
+    
+    return {
+      customer: { name: "Manual Entry", company: "Unknown", email: "manual@example.com", phone: "" },
+      items: [{ partNumber, description: "Aviation component", quantity, condition: "Serviceable" }],
+      requirements: { deliveryRequirement: content.includes("asap") ? "ASAP" : "STANDARD", urgency: content.includes("urgent") || content.includes("asap") ? "HIGH" : "MEDIUM" },
+      requestType,
+      confidenceScore,
+      missingInformation,
+    };
+  }
+  
+  const openai = new OpenAI({ 
+    apiKey,
+    baseURL: "https://openrouter.ai/api/v1",
+  });
+  
+  const model = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
+  
+  const response = await openai.chat.completions.create({
+    model: model,
+    response_format: zodResponseFormat(z.object({
+      customer: z.object({
+        name: z.string().default("Unknown"),
+        company: z.string().default("Unknown"),
+        email: z.string().default("unknown@example.com"),
+        phone: z.string().default(""),
+      }),
+      items: z.array(z.object({
+        partNumber: z.string().default("UNKNOWN"),
+        description: z.string().default(""),
+        quantity: z.number().default(1),
+        condition: z.string().default(""),
+      })),
+      requirements: z.object({
+        deliveryRequirement: z.string().default(""),
+        urgency: z.string().default(""),
+      }),
+      requestType: z.enum(["PARTS_EXCHANGE", "NEW_PART_PURCHASE", "REPAIR", "OVERHAUL", "UNKNOWN"]).default("UNKNOWN"),
+      confidenceScore: z.number().min(0).max(1),
+      missingInformation: z.array(z.string()),
+    }), "analysis"),
+    messages: [
+      {
+        role: "system",
+        content: "You classify manual aviation aftermarket RFQs. Extract RFQ details. Identify any missing critical information like part numbers or customer details. Return only structured data.",
+      },
+      {
+        role: "user",
+        content: rawText,
+      },
+    ],
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error("AI provider returned no analysis");
+  
+  return JSON.parse(content);
+}

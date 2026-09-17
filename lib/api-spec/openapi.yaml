@@ -62,6 +62,41 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Rfq"
+    post:
+      operationId: createRfq
+      tags: [operations]
+      summary: Create an RFQ manually
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRfqInput"
+      responses:
+        "200":
+          description: Created RFQ details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RfqDetail"
+  /rfqs/analyze:
+    post:
+      operationId: analyzeRfq
+      tags: [operations]
+      summary: Analyze manual RFQ text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeRfqInput"
+      responses:
+        "200":
+          description: Analyzed RFQ data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyzeRfqResult"
   /rfqs/{rfqId}:
     get:
       operationId: getRfq
@@ -82,6 +117,125 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateRfq
+      tags: [operations]
+      summary: Update an RFQ (e.g. to provide missing information)
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRfqInput"
+      responses:
+        "200":
+          description: Updated RFQ details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RfqDetail"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: RFQ not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /rfqs/{rfqId}/reviews:
+    post:
+      operationId: addRfqReview
+      tags: [operations]
+      summary: Add a human review action to an RFQ
+      parameters:
+        - $ref: "#/components/parameters/RfqId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddReviewInput"
+      responses:
+        "200":
+          description: Review action successfully recorded and RFQ updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RfqDetail"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: RFQ not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /catalog/search:
+    get:
+      operationId: searchCatalog
+      tags: [operations]
+      summary: Search the part catalog
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+          required: true
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CatalogItem"
+  /inventory/{partNumber}:
+    get:
+      operationId: getInventory
+      tags: [operations]
+      summary: Get inventory status for a part
+      parameters:
+        - name: partNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Inventory status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryStatus"
+  /pricing/calculate:
+    post:
+      operationId: calculatePricing
+      tags: [operations]
+      summary: Calculate pricing for an RFQ item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PricingRequest"
+      responses:
+        "200":
+          description: Calculated pricing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PricingResponse"
   /emails:
     get:
       operationId: listEmails
@@ -344,6 +498,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MicrosoftIntegrationStatus"
+  /integrations/microsoft/config:
+    post:
+      operationId: updateMicrosoftConfig
+      tags: [integrations]
+      summary: Update Microsoft 365 configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMicrosoftConfigInput"
+      responses:
+        "200":
+          description: Updated configuration status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MicrosoftIntegrationStatus"
   /integrations/microsoft/disconnect:
     post:
       operationId: disconnectMicrosoft
@@ -407,6 +579,101 @@ components:
       schema:
         $ref: "#/components/schemas/RfqStatus"
   schemas:
+    CatalogItem:
+      type: object
+      required:
+        - partNumber
+      properties:
+        partNumber:
+          type: string
+        description:
+          type: string
+        aircraft:
+          type: string
+        manufacturer:
+          type: string
+        manufacturerPartNumber:
+          type: string
+        alternatePartNumbers:
+          type: string
+        category:
+          type: string
+        condition:
+          type: string
+        certification:
+          type: string
+        basePrice:
+          type: number
+        currency:
+          type: string
+        supplier:
+          type: string
+        leadTimeDays:
+          type: number
+    InventoryStatus:
+      type: object
+      required:
+        - partNumber
+        - availableQty
+      properties:
+        partNumber:
+          type: string
+        availableQty:
+          type: integer
+        reservedQty:
+          type: integer
+        warehouseLocation:
+          type: string
+        supplier:
+          type: string
+        condition:
+          type: string
+        expectedReplenishmentDate:
+          type: string
+    PricingRequest:
+      type: object
+      required:
+        - partNumber
+        - quantity
+        - basePrice
+        - currency
+        - condition
+      properties:
+        partNumber:
+          type: string
+        quantity:
+          type: integer
+        basePrice:
+          type: number
+        currency:
+          type: string
+        condition:
+          type: string
+    PricingResponse:
+      type: object
+      required:
+        - unitPrice
+        - subtotal
+        - discount
+        - tax
+        - shippingHandling
+        - grandTotal
+        - currency
+      properties:
+        unitPrice:
+          type: number
+        subtotal:
+          type: number
+        discount:
+          type: number
+        tax:
+          type: number
+        shippingHandling:
+          type: number
+        grandTotal:
+          type: number
+        currency:
+          type: string
     HealthStatus:
       type: object
       properties:
@@ -428,7 +695,7 @@ components:
       enum: [PARTS_EXCHANGE, NEW_PART_PURCHASE, REPAIR, OVERHAUL, INSPECTION, UNKNOWN]
     RfqStatus:
       type: string
-      enum: [NEW, ANALYZING, UNDER_REVIEW, PROCESSING, NEEDS_HUMAN_REVIEW, COMPLETED, CLOSED]
+      enum: [NEW, ANALYZING, UNDER_REVIEW, PROCESSING, NEEDS_HUMAN_REVIEW, COMPLETED, CLOSED, UNDERSTANDING, VALIDATION_REQUIRED, READY_FOR_REVIEW, APPROVED, REJECTED, NEEDS_INFORMATION]
     Priority:
       type: string
       enum: [LOW, MEDIUM, HIGH, URGENT]
@@ -480,6 +747,11 @@ components:
           properties:
             description:
               type: string
+            customerId:
+              type: integer
+            customerPhone:
+              type: string
+              nullable: true
             quantity:
               type: integer
             aircraft:
@@ -502,6 +774,30 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ReviewHistoryEntry"
+            catalog:
+              $ref: "#/components/schemas/CatalogItem"
+            inventory:
+              $ref: "#/components/schemas/InventoryStatus"
+            pricing:
+              $ref: "#/components/schemas/PricingResponse"
+            compliance:
+              type: object
+              properties:
+                status:
+                  type: string
+                reasons:
+                  type: array
+                  items:
+                    type: string
+            ragContext:
+              type: array
+              items:
+                type: object
+                properties:
+                  content:
+                    type: string
+                  metadata:
+                    type: object
           required: [description, quantity, aircraft, notes, emailSubject, sender]
     Email:
       type: object
@@ -582,7 +878,7 @@ components:
           type: integer
         action:
           type: string
-          enum: [APPROVED, REJECTED, RECLASSIFIED, EDITED]
+          enum: [APPROVED, REJECTED, RECLASSIFIED, EDITED, REQUESTED_INFO, STARTED_REVIEW]
         previousClassification:
           $ref: "#/components/schemas/RequestType"
         newClassification:
@@ -713,6 +1009,116 @@ components:
         demoModeEnabled:
           type: boolean
       required: [connected, mailbox, lastSync, message, configured, developmentMode, demoModeEnabled]
+    UpdateMicrosoftConfigInput:
+      type: object
+      properties:
+        mailbox:
+          type: string
+      required: [mailbox]
+    AnalyzeRfqInput:
+      type: object
+      properties:
+        rawText:
+          type: string
+      required: [rawText]
+    AnalyzeRfqResult:
+      type: object
+      properties:
+        customer:
+          type: object
+          properties:
+            name:
+              type: string
+            company:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+          required: [name, company, email]
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              partNumber:
+                type: string
+              description:
+                type: string
+              quantity:
+                type: integer
+              condition:
+                type: string
+            required: [partNumber, quantity]
+        requirements:
+          type: object
+          properties:
+            deliveryRequirement:
+              type: string
+            urgency:
+              type: string
+          required: []
+        requestType:
+          $ref: "#/components/schemas/RequestType"
+        confidenceScore:
+          type: number
+        missingInformation:
+          type: array
+          items:
+            type: string
+      required: [customer, items, requirements, requestType, confidenceScore, missingInformation]
+    CreateRfqInput:
+      type: object
+      properties:
+        customer:
+          type: object
+          properties:
+            name:
+              type: string
+            company:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+          required: [name, company, email]
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              partNumber:
+                type: string
+              description:
+                type: string
+              quantity:
+                type: integer
+              condition:
+                type: string
+            required: [partNumber, quantity]
+        notes:
+          type: string
+        requestType:
+          $ref: "#/components/schemas/RequestType"
+        status:
+          $ref: "#/components/schemas/RfqStatus"
+      required: [customer, items, requestType]
+    AddReviewInput:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [APPROVED, REJECTED, REQUESTED_INFO, STARTED_REVIEW]
+        notes:
+          type: string
+      required: [action]
+    UpdateRfqInput:
+      type: object
+      properties:
+        customerPhone:
+          type: string
+        status:
+          $ref: "#/components/schemas/RfqStatus"
     AiReview:
       type: object
       properties:

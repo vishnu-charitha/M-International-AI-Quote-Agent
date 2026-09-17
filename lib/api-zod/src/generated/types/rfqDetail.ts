@@ -6,12 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AiAnalysis } from './aiAnalysis';
+import type { CatalogItem } from './catalogItem';
 import type { EmailDetail } from './emailDetail';
+import type { InventoryStatus } from './inventoryStatus';
+import type { PricingResponse } from './pricingResponse';
 import type { ReviewHistoryEntry } from './reviewHistoryEntry';
 import type { Rfq } from './rfq';
+import type { RfqDetailCompliance } from './rfqDetailCompliance';
+import type { RfqDetailRagContextItem } from './rfqDetailRagContextItem';
 
 export type RfqDetail = Rfq & ({
   description: string;
+  customerId?: number;
+  customerPhone?: string | null;
   quantity: number;
   aircraft: string;
   notes: string;
@@ -20,4 +27,9 @@ export type RfqDetail = Rfq & ({
   sourceEmail?: EmailDetail | null;
   analysis?: AiAnalysis | null;
   reviewHistory?: ReviewHistoryEntry[];
+  catalog?: CatalogItem;
+  inventory?: InventoryStatus;
+  pricing?: PricingResponse;
+  compliance?: RfqDetailCompliance;
+  ragContext?: RfqDetailRagContextItem[];
 });
