@@ -20,6 +20,10 @@ export const rfqItemsTable = pgTable("rfq_items", {
   condition: varchar("condition", { length: 80 }),
   requestedCondition: varchar("requested_condition", { length: 80 }),
   certificationRequirements: jsonb("certification_requirements").$type<string[]>().default([]).notNull(),
+  requestType: varchar("request_type", { length: 40 }),
+  leadTimeRequirements: text("lead_time_requirements"),
+  shippingRequirements: text("shipping_requirements"),
+  notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

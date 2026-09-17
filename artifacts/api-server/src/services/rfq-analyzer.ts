@@ -43,31 +43,70 @@ function developmentAnalysis(input: AnalysisInput): Phase2Analysis {
   };
 }
 
-export async function analyzeRfqEmail(input: AnalysisInput): Promise<Phase2Analysis> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return developmentAnalysis(input);
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: "gpt-5-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "You classify aviation aftermarket emails. Return only JSON with emailClassification, requestType, confidenceScore (0 to 1), customer, items, requirements, summary, requiresHumanReview, and reasoningSummary. Never include private chain-of-thought; reasoningSummary must be one concise sentence. Use requestType PARTS_EXCHANGE, NEW_PART_PURCHASE, REPAIR, OVERHAUL, or UNKNOWN.",
-        },
-        {
-          role: "user",
-          content: JSON.stringify({ subject: input.subject, body: input.bodyText, attachmentText: input.attachmentText }),
-        },
-      ],
+import OpenAI from "openai";
+import { z } from "zod";
+import { zodResponseFormat } from "openai/helpers/zod";
+
+const AnalysisSchema = z.object({
+  emailClassification: z.enum(["RFQ", "UNKNOWN", "OTHER"]),
+  requestType: z.enum(["PARTS_EXCHANGE", "NEW_PART_PURCHASE", "REPAIR", "OVERHAUL", "UNKNOWN"]),
+  confidenceScore: z.number().min(0).max(1),
+  requiresHumanReview: z.boolean(),
+  reasoningSummary: z.string(),
+  extractedData: z.object({
+    customer: z.object({
+      name: z.string().nullish(),
+      email: z.string().nullish(),
     }),
+    items: z.array(z.object({
+      partNumber: z.string(),
+      description: z.string().nullish(),
+      quantity: z.number(),
+      condition: z.string().nullish(),
+      requestedCondition: z.string().nullish(),
+    })),
+    requirements: z.object({
+      deliveryRequirement: z.string().nullish(),
+      urgency: z.string().nullish(),
+    }),
+    summary: z.string(),
+  }),
+});
+
+export async function analyzeRfqEmail(input: AnalysisInput): Promise<Phase2Analysis> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("OPENROUTER_API_KEY is required in production mode");
+    }
+    return developmentAnalysis(input);
+  }
+  
+  const openai = new OpenAI({ 
+    apiKey,
+    baseURL: "https://openrouter.ai/api/v1",
   });
-  if (!response.ok) throw new Error(`AI provider request failed (${response.status})`);
-  const payload = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const content = payload.choices?.[0]?.message?.content;
+  
+  const model = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
+  
+  const response = await openai.chat.completions.create({
+    model: model,
+    response_format: zodResponseFormat(AnalysisSchema, "analysis"),
+    messages: [
+      {
+        role: "system",
+        content: "You classify aviation aftermarket emails. Extract RFQ details. If missing critical info like part numbers, set requiresHumanReview to true. Return only structured data.",
+      },
+      {
+        role: "user",
+        content: JSON.stringify({ subject: input.subject, body: input.bodyText, attachmentText: input.attachmentText }),
+      },
+    ],
+  });
+
+  const content = response.choices[0]?.message?.content;
   if (!content) throw new Error("AI provider returned no analysis");
+  
   const parsed = JSON.parse(content) as Omit<Phase2Analysis, "id" | "developmentMode">;
   return { ...parsed, id: input.emailId, developmentMode: false };
 }

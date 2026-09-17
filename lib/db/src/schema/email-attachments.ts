@@ -19,6 +19,8 @@ export const emailAttachmentsTable = pgTable("email_attachments", {
   storagePath: text("storage_path"),
   extractedText: text("extracted_text"),
   processingStatus: varchar("processing_status", { length: 40 }).default("PENDING").notNull(),
+  microsoftAttachmentId: varchar("microsoft_attachment_id", { length: 255 }),
+  errorMessage: text("error_message"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

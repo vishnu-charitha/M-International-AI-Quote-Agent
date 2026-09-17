@@ -85,13 +85,14 @@ function createRfqFromAnalysis(email: Phase2Email, analysis: Phase2Analysis) {
   const id = Math.max(...rfqs.map((rfq) => rfq.id), 0) + 1;
   const year = new Date().getUTCFullYear();
   const rfqNumber = `MI-RFQ-${year}-${String(id).padStart(5, "0")}`;
-  const item = (analysis.extractedData.items as Array<{ partNumber?: string; description?: string; quantity?: number }> | undefined)?.[0];
+  const items = (analysis.extractedData.items as Array<{ partNumber?: string; description?: string; quantity?: number; condition?: string; requestedCondition?: string }> | undefined) ?? [];
+  const primaryItem = items[0];
   const rfq = {
     id,
     rfqNumber,
     customer: email.sender,
     customerCompany: email.sender,
-    partNumber: item?.partNumber ?? "UNKNOWN",
+    partNumber: primaryItem?.partNumber ?? "UNKNOWN",
     source: "EMAIL" as const,
     requestType: analysis.requestType,
     confidence: Math.round(analysis.confidenceScore * 100),
@@ -103,17 +104,51 @@ function createRfqFromAnalysis(email: Phase2Email, analysis: Phase2Analysis) {
   rfqs.unshift(rfq);
   rfqDetails.unshift({
     ...rfq,
-    description: item?.description ?? analysis.extractedData.summary?.toString() ?? "Aviation RFQ extracted from email.",
-    quantity: item?.quantity ?? 1,
+    description: primaryItem?.description ?? analysis.extractedData.summary?.toString() ?? "Aviation RFQ extracted from email.",
+    quantity: primaryItem?.quantity ?? 1,
     aircraft: "Not specified",
     notes: analysis.reasoningSummary,
     emailSubject: email.subject,
     sender: email.senderEmail,
+    // @ts-expect-error adding items for mock rendering
+    items,
   });
+  
+  if (db) {
+    try {
+      db.insert(require("@workspace/db").rfqsTable).values({
+        rfqNumber,
+        customerName: email.sender,
+        status: rfq.status,
+        priority: rfq.priority,
+        source: "EMAIL",
+        requestType: analysis.requestType,
+        confidenceScore: rfq.confidence,
+        emailId: email.id,
+      }).returning({ id: require("@workspace/db").rfqsTable.id }).then(async (insertedRfq: any[]) => {
+        const dbId = insertedRfq[0]?.id;
+        if (dbId && items.length > 0) {
+          const rfqItemsTable = require("@workspace/db").rfqItemsTable;
+          const records = items.map(it => ({
+            rfqId: dbId,
+            partNumber: it.partNumber ?? "UNKNOWN",
+            description: it.description,
+            quantity: it.quantity ?? 1,
+            condition: it.condition,
+            requestedCondition: it.requestedCondition,
+            requestType: analysis.requestType,
+          }));
+          await db.insert(rfqItemsTable).values(records);
+        }
+      }).catch(() => {});
+    } catch {}
+  }
+  
   return rfq;
 }
 
 async function persistEmail(email: Phase2Email) {
+  if (!db) return;
   try {
     await db.insert(emailsTable).values({
       messageId: email.microsoftMessageId,
@@ -188,14 +223,14 @@ router.post("/emails/sync", async (_req, res) => {
       };
       if (normalized.hasAttachments) {
         const graphAttachments = await listMessageAttachments(normalized.microsoftMessageId);
-        record.attachments = graphAttachments.map((attachment) => processAttachmentMetadata({
+        record.attachments = await Promise.all(graphAttachments.map((attachment) => processAttachmentMetadata({
           id: allocateAttachmentId(),
           emailId: record.id,
           fileName: attachment.name ?? "attachment",
           contentType: attachment.contentType ?? "application/octet-stream",
           fileSize: attachment.size ?? 0,
           contentBytes: attachment.contentBytes,
-        }));
+        })));
       }
       const result = upsertAndPersist(record);
       if (result.duplicate) duplicatesSkipped += 1;
@@ -231,6 +266,141 @@ function upsertAndPersist(record: Phase2Email) {
   void persistEmail(record);
   return { duplicate: false };
 }
+
+router.post("/emails/demo/seed", async (_req, res) => {
+  if (process.env.ENABLE_DEMO_EMAIL_PROVIDER !== 'true') {
+    res.status(403).json({ error: "Demo email provider is not enabled." });
+    return;
+  }
+  
+  const demoEmails = [
+    {
+      subject: "RFQ: 5 each PT6A Fuel Pump",
+      bodyText: "Please quote 5 units of PT6A-42 fuel pump in overhauled condition. Send lead time. Attachment contains trace documents.",
+      senderName: "Demo Customer 1",
+      senderEmail: "purchasing@demo1.com",
+      attachment: "Trace documentation for PT6A-42 fuel pump. Form 8130-3 attached."
+    },
+    {
+      subject: "AOG - Request for Quote - Filter Element",
+      bodyText: "We need an aircraft filter part number 10101-1 urgently. Need it in NEW condition. AOG shipment required.",
+      senderName: "AOG Desk",
+      senderEmail: "aog@demo2.com",
+      attachment: "Aircraft Filter Element Specifications: 10101-1 NEW."
+    },
+    {
+      subject: "Landing Gear Component RFQ",
+      bodyText: "Hello, looking to purchase 2 landing gear struts. Part number LG-1002. Please let me know price and condition available.",
+      senderName: "Supply Chain",
+      senderEmail: "supply@demo3.com",
+      attachment: ""
+    },
+    {
+      subject: "Invoice Inquiry #10294",
+      bodyText: "Can you please send me a copy of the invoice for our last order? We seem to have misplaced it.",
+      senderName: "Accounting",
+      senderEmail: "accounting@demo4.com",
+      attachment: ""
+    }
+  ];
+
+  let synced = 0;
+  let duplicatesSkipped = 0;
+
+  for (const [index, demo] of demoEmails.entries()) {
+    const record: Phase2Email = {
+      id: allocateEmailId(),
+      sender: demo.senderName,
+      senderEmail: demo.senderEmail,
+      subject: demo.subject,
+      receivedAt: new Date(Date.now() - (index * 3600000)).toISOString(), // Staggered times
+      aiStatus: "PROCESSING",
+      requestType: "UNKNOWN",
+      confidence: 0,
+      status: "PENDING_REVIEW",
+      recipient: "sales@minternational.com",
+      cc: "",
+      bodyText: demo.bodyText,
+      bodyHtml: demo.bodyText,
+      processingStatus: "SYNCED",
+      emailClassification: "UNKNOWN",
+      attachments: [],
+      analysis: null,
+      linkedRfq: null,
+      microsoftMessageId: `DEMO-MSG-${index}`,
+      internetMessageId: `demo-msg-${index}@demo.local`,
+      conversationId: `DEMO-CONV-${index}`,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (demo.attachment) {
+      record.attachments = [{
+        id: allocateAttachmentId(),
+        emailId: record.id,
+        fileName: "attachment.pdf",
+        contentType: "application/pdf",
+        fileSize: 1024,
+        processingStatus: "EXTRACTED",
+        extractedText: demo.attachment,
+      }];
+    }
+
+    const result = upsertAndPersist(record);
+    if (result.duplicate) {
+      duplicatesSkipped += 1;
+    } else {
+      synced += 1;
+      
+      // Auto-process the email with AI
+      try {
+        const analysis = await analyzeRfqEmail({
+          emailId: record.id,
+          subject: record.subject,
+          bodyText: record.bodyText,
+          attachmentText: demo.attachment,
+          senderName: record.sender,
+          senderEmail: record.senderEmail,
+        });
+        
+        analysis.id = allocateAnalysisId();
+        record.analysis = analysis;
+        record.requestType = analysis.requestType;
+        record.confidence = Math.round(analysis.confidenceScore * 100);
+        record.emailClassification = analysis.emailClassification;
+        record.processingStatus = analysis.requiresHumanReview ? "REVIEW_REQUIRED" : "PROCESSED";
+        record.aiStatus = analysis.requiresHumanReview ? "PROCESSING" : "ANALYZED";
+        record.status = analysis.requiresHumanReview ? "PENDING_REVIEW" : "RFQ_CREATED";
+        
+        const rfq = analysis.emailClassification === "RFQ" ? createRfqFromAnalysis(record, analysis) : null;
+        record.linkedRfq = rfq;
+        
+        if (analysis.requiresHumanReview && rfq) {
+          phase2Reviews.set(rfq.id, {
+            rfqId: rfq.id,
+            emailId: record.id,
+            emailSubject: record.subject,
+            createdAt: new Date().toISOString(),
+            analysis,
+            reviewHistory: [],
+          });
+        }
+        await persistEmail(record);
+      } catch (error) {
+        record.processingStatus = "FAILED";
+        record.aiStatus = "FAILED";
+        await persistEmail(record);
+      }
+    }
+  }
+
+  res.json(SyncEmailsResponse.parse({
+    mode: "DEVELOPMENT",
+    synced,
+    duplicatesSkipped,
+    failed: 0,
+    message: `Demo mode sync complete. ${synced} new demo message${synced === 1 ? "" : "s"} imported.`,
+  }));
+});
 
 router.post("/emails/:emailId/process", async (req, res) => {
   const email = phase2Emails.get(Number(req.params.emailId));

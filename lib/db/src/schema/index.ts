@@ -6,3 +6,4 @@ export * from "./ai-analyses";
 export * from "./email-attachments";
 export * from "./rfq-items";
 export * from "./ai-review-history";
+export * from "./integrations";

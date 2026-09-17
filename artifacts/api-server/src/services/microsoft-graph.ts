@@ -28,9 +28,73 @@ type ProxyInit = {
   body?: string;
 };
 
+import { db } from "@workspace/db";
+import { integrationsTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+
+export function isMicrosoftConfigured() {
+  return !!process.env.MICROSOFT_CLIENT_ID && !!process.env.MICROSOFT_TENANT_ID;
+}
+
+async function getAccessToken() {
+  if (!db) throw new Error("Database not connected.");
+  const integrations = await db.select().from(integrationsTable).where(eq(integrationsTable.provider, "microsoft"));
+  const integration = integrations[0];
+  
+  if (!integration || !integration.accessToken) {
+    throw new Error("Microsoft OAuth tokens not found in database.");
+  }
+  
+  // Check if token is expired or expires in next 5 minutes
+  if (integration.expiresAt && new Date(integration.expiresAt.getTime() - 5 * 60000) < new Date()) {
+    // Refresh token
+    const tenantId = process.env.MICROSOFT_TENANT_ID!;
+    const clientId = process.env.MICROSOFT_CLIENT_ID!;
+    const clientSecret = process.env.MICROSOFT_CLIENT_SECRET!;
+    
+    const tokenResponse = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "refresh_token",
+        refresh_token: integration.refreshToken || "",
+      }),
+    });
+    
+    if (!tokenResponse.ok) {
+      throw new Error("Failed to refresh Microsoft token.");
+    }
+    
+    const tokens = await tokenResponse.json() as any;
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+    
+    await db.update(integrationsTable).set({
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresAt,
+      updatedAt: new Date(),
+    }).where(eq(integrationsTable.id, integration.id));
+    
+    return tokens.access_token as string;
+  }
+  
+  return integration.accessToken;
+}
+
 async function graphRequest<T>(path: string, init?: ProxyInit): Promise<T> {
-  const connectors = new ReplitConnectors();
-  const response = await connectors.proxy("outlook", path, init);
+  const token = await getAccessToken();
+  const url = `https://graph.microsoft.com${path}`;
+  const response = await fetch(url, {
+    method: init?.method || "GET",
+    headers: {
+      ...init?.headers,
+      Authorization: `Bearer ${token}`
+    },
+    body: init?.body
+  });
+  
   if (!response.ok) {
     const message = await response.text().catch(() => "");
     throw new Error(`Microsoft Graph request failed (${response.status}): ${message || response.statusText}`);
@@ -39,6 +103,9 @@ async function graphRequest<T>(path: string, init?: ProxyInit): Promise<T> {
 }
 
 export async function getMicrosoftProfile() {
+  if (!isMicrosoftConfigured()) {
+    throw new Error("Microsoft credentials not configured.");
+  }
   return graphRequest<{ displayName?: string; mail?: string; userPrincipalName?: string }>("/v1.0/me?$select=displayName,mail,userPrincipalName");
 }
 

@@ -128,6 +128,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EmailSyncResult"
+  /emails/demo/seed:
+    post:
+      operationId: seedDemoEmails
+      tags: [ingestion]
+      summary: Seed demo emails
+      responses:
+        "200":
+          description: Seeding result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailSyncResult"
   /emails/{emailId}/process:
     post:
       operationId: processEmail
@@ -698,7 +710,9 @@ components:
           type: boolean
         developmentMode:
           type: boolean
-      required: [connected, mailbox, lastSync, message, configured, developmentMode]
+        demoModeEnabled:
+          type: boolean
+      required: [connected, mailbox, lastSync, message, configured, developmentMode, demoModeEnabled]
     AiReview:
       type: object
       properties:

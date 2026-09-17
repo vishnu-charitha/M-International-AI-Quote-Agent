@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { toArray } from '@/lib/utils';
 import { Link, useLocation, useParams } from 'wouter';
 import {
   AiReviewStatus,
@@ -69,13 +70,27 @@ function Button({ children, className = '', ...props }: ButtonHTMLAttributes<HTM
 export function EmailInboxPageV2() {
   const emails = useListEmails();
   const sync = useSyncEmails();
+  const statusQuery = useGetMicrosoftStatus();
+  const demoModeEnabled = statusQuery.data?.demoModeEnabled;
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [tab, setTab] = useState<'all' | 'review' | 'processed' | 'new'>('all');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<number | null>(null);
+  const [seeding, setSeeding] = useState(false);
+
+  const seedDemo = async () => {
+    setSeeding(true);
+    try {
+      await fetch('/api/emails/demo/seed', { method: 'POST' });
+      queryClient.invalidateQueries({ queryKey: getListEmailsQueryKey() });
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   const records = useMemo(() => {
-    const all = emails.data ?? [];
+    const all = toArray<typeof emails.data extends Array<infer U> ? U : any>(emails.data);
     return all.filter((email) => {
       const textMatch = `${email.sender} ${email.subject} ${email.senderEmail}`.toLowerCase().includes(search.toLowerCase());
       const tabMatch = tab === 'all' || (tab === 'review' ? email.status === 'PENDING_REVIEW' : tab === 'processed' ? email.status === 'RFQ_CREATED' : email.aiStatus === 'PROCESSING');
@@ -87,7 +102,17 @@ export function EmailInboxPageV2() {
   if (emails.isLoading) return <><PageHeading eyebrow="Command center / intake" title="Email inbox" /><LoadingRows count={7} /></>;
   if (emails.isError) return <><PageHeading eyebrow="Command center / intake" title="Email inbox" /><QueryState error onRetry={() => emails.refetch()} /></>;
   return <div className="fade-up">
-    <PageHeading eyebrow="Command center / intake" title="Email inbox" description="Customer traffic, staged for classification and RFQ creation." action={<Button data-testid="button-sync-emails" onClick={doSync} disabled={sync.isPending} className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"><RefreshCw size={13} className={sync.isPending ? 'animate-spin' : ''} /> {sync.isPending ? 'Syncing' : 'Sync inbox'}</Button>} />
+    <PageHeading eyebrow="Command center / intake" title="Email inbox" description="Customer traffic, staged for classification and RFQ creation." action={<div className="flex items-center gap-2">
+      {demoModeEnabled && (
+        <>
+          <div className="rounded border border-indigo-200 bg-indigo-50 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-indigo-700">Demo Mode</div>
+          <Button data-testid="button-seed-demo" onClick={seedDemo} disabled={seeding} className="border border-indigo-200 bg-indigo-50 text-indigo-700">
+            {seeding ? 'Loading...' : 'Load Demo Emails'}
+          </Button>
+        </>
+      )}
+      <Button data-testid="button-sync-emails" onClick={doSync} disabled={sync.isPending} className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"><RefreshCw size={13} className={sync.isPending ? 'animate-spin' : ''} /> {sync.isPending ? 'Syncing' : 'Sync inbox'}</Button>
+    </div>} />
     {sync.data && <div data-testid="status-email-sync" className="mb-5 flex items-center gap-2 rounded-md border border-[hsl(var(--chart-3)/.28)] bg-[hsl(var(--chart-3)/.08)] px-3 py-2 text-[11px] text-[hsl(var(--foreground)/.78)]"><CheckCircle2 size={14} className="text-[hsl(var(--chart-3))]" /> {sync.data.message} <span className="mono ml-auto text-[9px]">{sync.data.mode === 'DEVELOPMENT' ? 'DEVELOPMENT MODE' : `${sync.data.synced} synced`}</span></div>}
     {sync.isError && <div role="alert" className="mb-5 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[11px] font-semibold text-red-700">Inbox sync could not complete. Try again when the connection is available.</div>}
     <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
@@ -131,7 +156,7 @@ export function AiReviewPageV2() {
   };
   if (reviews.isLoading) return <><PageHeading eyebrow="Command center / intelligence" title="AI review queue" /><LoadingRows count={5} /></>;
   if (reviews.isError) return <><PageHeading eyebrow="Command center / intelligence" title="AI review queue" /><QueryState error onRetry={() => reviews.refetch()} /></>;
-  const rows = reviews.data ?? [];
+  const rows = toArray<typeof reviews.data extends Array<infer U> ? U : any>(reviews.data);
   return <div className="fade-up"><PageHeading eyebrow="Command center / intelligence" title="AI review queue" description="Low-confidence classifications waiting for an operator decision." action={<div className="flex items-center gap-2 rounded-md border border-[hsl(var(--accent)/.4)] bg-[hsl(var(--accent)/.1)] px-3 py-2 text-[10px] font-bold text-[hsl(var(--primary))]"><Sparkles size={14} /> Human-in-the-loop</div>} /><div className="mb-5 grid gap-3 sm:grid-cols-3"><ReviewStat label="Needs review" value={String(rows.filter((row) => row.status === AiReviewStatus.NEEDS_REVIEW).length)} /><ReviewStat label="Average confidence" value={rows.length ? pct(rows.reduce((sum, row) => sum + row.confidence, 0) / rows.length) : '—'} /><ReviewStat label="Decisions today" value={String(rows.filter((row) => row.status !== AiReviewStatus.NEEDS_REVIEW).length)} /></div>{rows.length === 0 ? <QueryState empty label="The AI review queue is clear" /> : <div className="space-y-3">{rows.map((review) => <div key={review.id} data-testid={`card-review-queue-${review.id}`} className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="flex flex-col gap-5 xl:flex-row xl:items-center"><div className="min-w-0 flex-1"><div className="mb-2 flex items-center gap-3"><span className="mono text-[11px] font-medium text-[hsl(var(--primary))]">{review.rfqNumber}</span><StatusBadge value={review.status} /></div><div className="text-[14px] font-extrabold">{review.customer}</div><p className="mt-1.5 max-w-2xl text-[11px] leading-5 text-[hsl(var(--muted-foreground))]">{review.reason}</p></div><div className="flex shrink-0 items-center gap-6"><div><div className="eyebrow mb-2">Classification</div><div className="text-[11px] font-bold">{readable(review.classification)}</div></div><div><div className="eyebrow mb-2">Confidence</div><ConfidenceBar value={review.confidence} /></div></div><div className="flex shrink-0 flex-wrap gap-2 xl:w-[310px] xl:justify-end"><Button data-testid={`button-open-review-${review.id}`} onClick={() => setLocation(`/ai-review/${review.rfqId}`)} className="border border-[hsl(var(--border))] text-[hsl(var(--primary))]">Open detail <ArrowRight size={13} /></Button><Button data-testid={`button-approve-review-${review.id}`} disabled={pending} onClick={() => act(review.rfqId, 'approve')} className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"><Check size={13} /> Approve</Button><Button data-testid={`button-reject-review-${review.id}`} disabled={pending} onClick={() => act(review.rfqId, 'reject')} className="border border-red-200 bg-red-50 text-red-700"><X size={13} /> Reject</Button></div></div></div>)}</div>}</div>;
 }
 
@@ -193,9 +218,23 @@ export function SettingsPage() {
   const connected = status.data;
   const integrations = location === '/settings/integrations';
   const refresh = () => queryClient.invalidateQueries({ queryKey: getGetMicrosoftStatusQueryKey() });
-  const connectMicrosoft = () => connect.refetch().then(refresh);
+  const connectMicrosoft = () => { window.location.href = '/api/integrations/microsoft/connect'; };
   const disconnectMicrosoft = () => disconnect.mutate(undefined, { onSuccess: refresh });
-  return <div className="fade-up"><PageHeading eyebrow="Administration" title={integrations ? 'Integrations' : 'Settings'} description="Connection health and operator preferences for the quote agent." /><div className="mb-6 flex gap-1 border-b border-[hsl(var(--border))]"><button data-testid="tab-settings-general" onClick={() => setLocation('/settings')} className={`px-3 py-3 text-[10px] font-extrabold uppercase tracking-[.1em] ${!integrations ? 'border-b-2 border-[hsl(var(--accent))] text-[hsl(var(--primary))]' : 'text-[hsl(var(--muted-foreground))]'}`}>Workspace</button><button data-testid="tab-settings-integrations" onClick={() => setLocation('/settings/integrations')} className={`px-3 py-3 text-[10px] font-extrabold uppercase tracking-[.1em] ${integrations ? 'border-b-2 border-[hsl(var(--accent))] text-[hsl(var(--primary))]' : 'text-[hsl(var(--muted-foreground))]'}`}>Integrations</button></div>{integrations ? <div className="grid gap-5 lg:grid-cols-2"><IntegrationCard icon={<Cloud size={18} />} title="Microsoft 365" description="Mailbox ingestion through Microsoft Graph." connected={connected?.connected ?? false} configured={connected?.configured ?? false} development={connected?.developmentMode ?? false} detail={connected?.mailbox ? `Mailbox: ${connected.mailbox}` : connected?.message} action={connected?.connected ? <Button data-testid="button-disconnect-microsoft" disabled={disconnect.isPending} onClick={disconnectMicrosoft} className="border border-red-200 bg-red-50 text-red-700"><Unplug size={13} /> Disconnect</Button> : <Button data-testid="button-connect-microsoft" disabled={connect.isFetching} onClick={connectMicrosoft} className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"><Link2 size={13} /> {connect.isFetching ? 'Connecting' : 'Connect Microsoft 365'}</Button>} /><IntegrationCard icon={<Sparkles size={18} />} title="AI classification provider" description="Classification, extraction and confidence reasoning." connected={Boolean(status.data)} configured={Boolean(status.data?.configured)} development={status.data?.developmentMode ?? true} detail={status.data?.developmentMode ? 'Development mode is active. AI output is deterministic for local operations.' : 'Provider connection is available.'} action={<Button data-testid="button-refresh-ai-status" onClick={() => status.refetch()} className="border border-[hsl(var(--border))] text-[hsl(var(--primary))]"><RefreshCw size={13} /> Refresh status</Button>} /></div> : <div className="grid gap-5 lg:grid-cols-[1.15fr_.85fr]"><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="eyebrow mb-3">Workspace profile</div><h2 className="text-[18px] font-extrabold">M International operations</h2><p className="mt-2 text-[12px] leading-6 text-[hsl(var(--muted-foreground))]">A focused workspace for aftermarket operators moving customer email into quotes.</p><div className="mt-6 grid gap-4 sm:grid-cols-2"><Info label="Operator role" value="Operations desk" /><Info label="Timezone" value="UTC" /><Info label="Environment" value="Development" /><Info label="Refresh cadence" value="On demand" /></div></div><IntegrationCard icon={<ShieldCheck size={18} />} title="Platform status" description="Current connection signals for this workspace." connected={status.isSuccess} configured={status.data?.configured ?? false} development={status.data?.developmentMode ?? true} detail={status.data?.message ?? 'Checking integration health…'} action={<Button data-testid="button-open-integrations" onClick={() => setLocation('/settings/integrations')} className="border border-[hsl(var(--border))] text-[hsl(var(--primary))]">Manage integrations <ArrowRight size={13} /></Button>} /></div>}</div>;
+  
+  const [seeding, setSeeding] = useState(false);
+  const seedDemo = async () => {
+    setSeeding(true);
+    try {
+      await fetch('/api/emails/demo/seed', { method: 'POST' });
+      alert("Demo emails seeded successfully.");
+    } catch {
+      alert("Failed to seed demo emails.");
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  return <div className="fade-up"><PageHeading eyebrow="Administration" title={integrations ? 'Integrations' : 'Settings'} description="Connection health and operator preferences for the quote agent." /><div className="mb-6 flex gap-1 border-b border-[hsl(var(--border))]"><button data-testid="tab-settings-general" onClick={() => setLocation('/settings')} className={`px-3 py-3 text-[10px] font-extrabold uppercase tracking-[.1em] ${!integrations ? 'border-b-2 border-[hsl(var(--accent))] text-[hsl(var(--primary))]' : 'text-[hsl(var(--muted-foreground))]'}`}>Workspace</button><button data-testid="tab-settings-integrations" onClick={() => setLocation('/settings/integrations')} className={`px-3 py-3 text-[10px] font-extrabold uppercase tracking-[.1em] ${integrations ? 'border-b-2 border-[hsl(var(--accent))] text-[hsl(var(--primary))]' : 'text-[hsl(var(--muted-foreground))]'}`}>Integrations</button></div>{integrations ? <div className="grid gap-5 lg:grid-cols-2"><IntegrationCard icon={<Cloud size={18} />} title="Microsoft 365" description="Mailbox ingestion through Microsoft Graph." connected={connected?.connected ?? false} configured={connected?.configured ?? false} development={connected?.developmentMode ?? false} detail={connected?.mailbox ? `Mailbox: ${connected.mailbox}` : connected?.message} action={connected?.connected ? <Button data-testid="button-disconnect-microsoft" disabled={disconnect.isPending} onClick={disconnectMicrosoft} className="border border-red-200 bg-red-50 text-red-700"><Unplug size={13} /> Disconnect</Button> : <Button data-testid="button-connect-microsoft" onClick={connectMicrosoft} className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"><Link2 size={13} /> Connect Microsoft 365</Button>} /><IntegrationCard icon={<Sparkles size={18} />} title="AI classification provider" description="Classification, extraction and confidence reasoning." connected={Boolean(status.data)} configured={Boolean(status.data?.configured)} development={status.data?.developmentMode ?? true} detail={status.data?.developmentMode ? 'Development mode is active. AI output is deterministic for local operations.' : 'Provider connection is available.'} action={<Button data-testid="button-refresh-ai-status" onClick={() => status.refetch()} className="border border-[hsl(var(--border))] text-[hsl(var(--primary))]"><RefreshCw size={13} /> Refresh status</Button>} />{status.data?.demoModeEnabled && <IntegrationCard icon={<Cloud size={18} />} title="Demo Provider" description="Loads mock emails and attachments." connected={true} configured={true} development={true} detail="Demo mode is active in this workspace." action={<Button data-testid="button-seed-demo-integration" disabled={seeding} onClick={seedDemo} className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"><RefreshCw size={13} className={seeding ? 'animate-spin' : ''} /> {seeding ? 'Loading...' : 'Load Demo Emails'}</Button>} />}</div> : <div className="grid gap-5 lg:grid-cols-[1.15fr_.85fr]"><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="eyebrow mb-3">Workspace profile</div><h2 className="text-[18px] font-extrabold">M International operations</h2><p className="mt-2 text-[12px] leading-6 text-[hsl(var(--muted-foreground))]">A focused workspace for aftermarket operators moving customer email into quotes.</p><div className="mt-6 grid gap-4 sm:grid-cols-2"><Info label="Operator role" value="Operations desk" /><Info label="Timezone" value="UTC" /><Info label="Environment" value="Development" /><Info label="Refresh cadence" value="On demand" /></div></div><IntegrationCard icon={<ShieldCheck size={18} />} title="Platform status" description="Current connection signals for this workspace." connected={status.isSuccess} configured={status.data?.configured ?? false} development={status.data?.developmentMode ?? true} detail={status.data?.message ?? 'Checking integration health…'} action={<Button data-testid="button-open-integrations" onClick={() => setLocation('/settings/integrations')} className="border border-[hsl(var(--border))] text-[hsl(var(--primary))]">Manage integrations <ArrowRight size={13} /></Button>} /></div>}</div>;
 }
 
 function IntegrationCard({ icon, title, description, connected, configured, development, detail, action }: { icon: ReactNode; title: string; description: string; connected: boolean; configured: boolean; development: boolean; detail?: string | null; action: ReactNode }) {

@@ -15,4 +15,5 @@ export interface MicrosoftIntegrationStatus {
   message: string;
   configured: boolean;
   developmentMode: boolean;
+  demoModeEnabled: boolean;
 }

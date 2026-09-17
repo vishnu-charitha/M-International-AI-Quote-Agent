@@ -607,6 +607,77 @@ export const useSyncEmails = <TError = ErrorType<unknown>,
       return useMutation(getSyncEmailsMutationOptions(options));
     }
 
+export const getSeedDemoEmailsUrl = () => {
+
+
+
+
+  return `/api/emails/demo/seed`
+}
+
+/**
+ * @summary Seed demo emails
+ */
+export const seedDemoEmails = async ( options?: Parameters<typeof customFetch>[1]): Promise<EmailSyncResult> => {
+
+  return customFetch<EmailSyncResult>(getSeedDemoEmailsUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getSeedDemoEmailsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof seedDemoEmails>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof seedDemoEmails>>, TError,void, TContext> => {
+
+const mutationKey = ['seedDemoEmails'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof seedDemoEmails>>, void> = () => {
+
+
+          return  seedDemoEmails(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SeedDemoEmailsMutationResult = NonNullable<Awaited<ReturnType<typeof seedDemoEmails>>>
+
+    export type SeedDemoEmailsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Seed demo emails
+ */
+export const useSeedDemoEmails = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof seedDemoEmails>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof seedDemoEmails>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getSeedDemoEmailsMutationOptions(options));
+    }
+
 export const getProcessEmailUrl = (emailId: number,) => {
 
 

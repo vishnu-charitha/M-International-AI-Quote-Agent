@@ -281,6 +281,18 @@ export const SyncEmailsResponse = zod.object({
 
 
 /**
+ * @summary Seed demo emails
+ */
+export const SeedDemoEmailsResponse = zod.object({
+  "mode": zod.enum(['MICROSOFT_GRAPH', 'DEVELOPMENT']),
+  "synced": zod.number().int(),
+  "duplicatesSkipped": zod.number().int(),
+  "failed": zod.number().int(),
+  "message": zod.string()
+})
+
+
+/**
  * @summary Process an email through the RFQ analysis pipeline
  */
 export const ProcessEmailParams = zod.object({
@@ -883,7 +895,8 @@ export const GetMicrosoftStatusResponse = zod.object({
   "lastSync": zod.string().nullable(),
   "message": zod.string(),
   "configured": zod.boolean(),
-  "developmentMode": zod.boolean()
+  "developmentMode": zod.boolean(),
+  "demoModeEnabled": zod.boolean()
 })
 
 
@@ -896,7 +909,8 @@ export const GetMicrosoftConnectResponse = zod.object({
   "lastSync": zod.string().nullable(),
   "message": zod.string(),
   "configured": zod.boolean(),
-  "developmentMode": zod.boolean()
+  "developmentMode": zod.boolean(),
+  "demoModeEnabled": zod.boolean()
 })
 
 
@@ -909,7 +923,8 @@ export const MicrosoftCallbackResponse = zod.object({
   "lastSync": zod.string().nullable(),
   "message": zod.string(),
   "configured": zod.boolean(),
-  "developmentMode": zod.boolean()
+  "developmentMode": zod.boolean(),
+  "demoModeEnabled": zod.boolean()
 })
 
 
@@ -922,7 +937,8 @@ export const DisconnectMicrosoftResponse = zod.object({
   "lastSync": zod.string().nullable(),
   "message": zod.string(),
   "configured": zod.boolean(),
-  "developmentMode": zod.boolean()
+  "developmentMode": zod.boolean(),
+  "demoModeEnabled": zod.boolean()
 })
 
 
