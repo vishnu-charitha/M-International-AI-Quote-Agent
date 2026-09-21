@@ -5,13 +5,57 @@
  * M International AI Quote Agent operations API
  * OpenAPI spec version: 0.1.0
  */
+export type QuoteStatus = typeof QuoteStatus[keyof typeof QuoteStatus];
+
+
+export const QuoteStatus = {
+  DRAFT: 'DRAFT',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  SENT: 'SENT',
+} as const;
+
+export interface Quote {
+  id: number;
+  quoteNumber: string;
+  rfqId: number;
+  customer?: string;
+  customerCompany?: string;
+  partNumber: string;
+  description?: string;
+  quantity: number;
+  unitPrice?: number;
+  subtotal?: number;
+  discount?: number;
+  shippingCost?: number;
+  tax?: number;
+  totalAmount?: number;
+  currency?: string;
+  availability?: string;
+  leadTime?: string;
+  warranty?: string;
+  validity?: string;
+  status: QuoteStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateQuoteStatusInput {
+  status: QuoteStatus;
+}
+
+export interface SendQuoteInput {
+  /** Base64 encoded PDF string */
+  pdfBase64: string;
+}
+
 export interface CatalogItem {
   partNumber: string;
   description?: string;
   aircraft?: string;
   manufacturer?: string;
-  manufacturerPartNumber?: string;
-  alternatePartNumbers?: string;
+  manufacturerPartNumber?: string | null;
+  alternatePartNumbers?: string | null;
   category?: string;
   condition?: string;
   certification?: string;
@@ -28,7 +72,7 @@ export interface InventoryStatus {
   warehouseLocation?: string;
   supplier?: string;
   condition?: string;
-  expectedReplenishmentDate?: string;
+  expectedReplenishmentDate?: string | null;
 }
 
 export interface PricingRequest {
@@ -51,6 +95,20 @@ export interface PricingResponse {
 
 export interface HealthStatus {
   status: string;
+}
+
+export interface EmailOutboxRecord {
+  id: number;
+  rfqId?: number | null;
+  recipient: string;
+  subject: string;
+  bodyText: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface ListEmailOutboxResponse {
+  emails: EmailOutboxRecord[];
 }
 
 export interface ErrorResponse {
@@ -96,6 +154,7 @@ export const RfqStatus = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   NEEDS_INFORMATION: 'NEEDS_INFORMATION',
+  QUOTED: 'QUOTED',
 } as const;
 
 export type Priority = typeof Priority[keyof typeof Priority];
@@ -126,6 +185,21 @@ export interface SummaryMetric {
   value: number;
   trend: number;
   tone: SummaryMetricTone;
+}
+
+export interface Customer {
+  id: number;
+  name: string;
+  company: string;
+  email: string;
+  phone?: string;
+  address?: string;
+}
+
+export interface ValidationStatus {
+  isValid: boolean;
+  missingCustomerFields: string[];
+  missingRfqFields: string[];
 }
 
 export interface Rfq {
@@ -281,7 +355,10 @@ export interface ReviewHistoryEntry {
 export type RfqDetail = Rfq & ({
   description: string;
   customerId?: number;
+  customerEmail?: string | null;
   customerPhone?: string | null;
+  customerAddress?: string | null;
+  validation?: ValidationStatus;
   quantity: number;
   aircraft: string;
   notes: string;
@@ -451,7 +528,27 @@ export interface AddReviewInput {
 
 export interface UpdateRfqInput {
   customerPhone?: string;
+  customerAddress?: string;
   status?: RfqStatus;
+}
+
+export interface UpdateCustomerInput {
+  name?: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
+export interface RequestInfoInput {
+  subject: string;
+  body: string;
+}
+
+export interface RequestInfoResponse {
+  success: boolean;
+  status: string;
+  developmentMode?: boolean;
 }
 
 export type AiReviewActionAction = typeof AiReviewActionAction[keyof typeof AiReviewActionAction];

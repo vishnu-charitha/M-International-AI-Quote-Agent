@@ -159,3 +159,70 @@ export function normalizeGraphMessage(message: GraphMessage) {
     hasAttachments: Boolean(message.hasAttachments),
   };
 }
+
+export async function sendEmail(
+  toAddress: string,
+  subject: string,
+  bodyContent: string
+) {
+  const token = await getAccessToken();
+  const payload = {
+    message: {
+      subject: subject,
+      body: { contentType: "Text", content: bodyContent },
+      toRecipients: [{ emailAddress: { address: toAddress } }]
+    },
+    saveToSentItems: "true"
+  };
+
+  const response = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Failed to send email via Microsoft Graph: ${response.status} ${text}`);
+  }
+}
+
+export async function sendEmailWithAttachment(
+  toAddress: string,
+  subject: string,
+  bodyContent: string,
+  attachment: { name: string, contentBytes: string }
+) {
+  const token = await getAccessToken();
+  const payload = {
+    message: {
+      subject: subject,
+      body: { contentType: "Text", content: bodyContent },
+      toRecipients: [{ emailAddress: { address: toAddress } }],
+      attachments: [{
+        "@odata.type": "#microsoft.graph.fileAttachment",
+        name: attachment.name,
+        contentType: "application/pdf",
+        contentBytes: attachment.contentBytes
+      }]
+    },
+    saveToSentItems: "true"
+  };
+
+  const response = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`Failed to send email via Microsoft Graph: ${response.status} ${text}`);
+  }
+}

@@ -11,8 +11,8 @@ export interface CatalogItem {
   description?: string;
   aircraft?: string;
   manufacturer?: string;
-  manufacturerPartNumber?: string;
-  alternatePartNumbers?: string;
+  manufacturerPartNumber?: string | null;
+  alternatePartNumbers?: string | null;
   category?: string;
   condition?: string;
   certification?: string;

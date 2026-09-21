@@ -15,13 +15,16 @@ import {
   CreateRfqBody,
   UpdateRfqBody,
   AddRfqReviewBody,
+  GetEmailOutboxResponse,
+  UpdateCustomerInfoBody,
 } from "@workspace/api-zod";
 import { aiReviews, dashboard, emails, rfqDetails, rfqs } from "../services/mock-data";
 import { phase2Emails, phase2Reviews } from "../services/phase2-state";
 import { analyzeManualRfq } from "../services/rfq-analyzer";
 import { db } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
-import { rfqsTable, rfqItemsTable, customersTable, aiReviewHistoryTable } from "@workspace/db/schema";
+import { rfqsTable, rfqItemsTable, customersTable, aiReviewHistoryTable, emailOutboxTable } from "@workspace/db/schema";
+import { isMicrosoftConfigured, sendEmail } from "../services/microsoft-graph";
 
 const router: IRouter = Router();
 
@@ -115,6 +118,8 @@ router.get("/rfqs/:rfqId", async (req, res) => {
         customerCompany: row.customers?.company || "Unknown",
         customerId: row.customers?.id,
         customerPhone: row.customers?.phone || null,
+        customerEmail: row.customers?.email || null,
+        customerAddress: row.customers?.address || null,
         partNumber: row.rfq_items?.partNumber || "MULTIPLE",
         source: row.rfqs.source,
         requestType: row.rfqs.requestType,
@@ -190,12 +195,20 @@ router.get("/rfqs/:rfqId", async (req, res) => {
         // Fetch Catalog
         const catalogMatches = await db.select().from(partCatalogTable).where(eq(partCatalogTable.partNumber, partNumber));
         if (catalogMatches.length > 0) {
-          enriched.catalog = catalogMatches[0];
+          const catalogRaw = catalogMatches[0];
+          enriched.catalog = {
+            ...catalogRaw,
+            basePrice: catalogRaw.basePrice != null ? Number(catalogRaw.basePrice) : undefined,
+          };
           
           // Fetch Inventory
           const invMatches = await db.select().from(inventoryTable).where(eq(inventoryTable.partNumber, partNumber));
           if (invMatches.length > 0) {
-            enriched.inventory = invMatches[0];
+            const invRaw = invMatches[0];
+            enriched.inventory = {
+              ...invRaw,
+              expectedReplenishmentDate: invRaw.expectedReplenishmentDate ? new Date(invRaw.expectedReplenishmentDate).toISOString() : null,
+            };
           }
 
           // Calculate Pricing
@@ -224,6 +237,43 @@ router.get("/rfqs/:rfqId", async (req, res) => {
       console.error("Error fetching supporting info:", err);
     }
   }
+
+  // Phase 9: Validation Gate
+  const missingCustomerFields: string[] = [];
+  const missingRfqFields: string[] = [];
+
+  if (!enriched.customer || enriched.customer === "Unknown") missingCustomerFields.push("Full Name");
+  if (!enriched.customerCompany || enriched.customerCompany === "Unknown") missingCustomerFields.push("Company");
+  
+  let parsedSenderEmail = null;
+  if (enriched.sender && enriched.sender.includes("<") && enriched.sender.includes(">")) {
+    parsedSenderEmail = enriched.sender.split("<")[1].split(">")[0];
+  }
+  const effectiveEmail = enriched.customerEmail || parsedSenderEmail || enriched.sourceEmail?.senderEmail;
+  if (!effectiveEmail) missingCustomerFields.push("Email");
+  else if (!enriched.customerEmail) enriched.customerEmail = effectiveEmail; // Update the record for the frontend
+  
+  if (!enriched.customerPhone) missingCustomerFields.push("Phone");
+  if (!enriched.customerAddress) missingCustomerFields.push("Address");
+
+  const reqType = enriched.requestType;
+  if (!enriched.partNumber) missingRfqFields.push("Part number");
+  if (!enriched.quantity) missingRfqFields.push("Quantity");
+  if (reqType === "NEW_PART_PURCHASE") {
+    if (!enriched.description) missingRfqFields.push("Description");
+    if (!enriched.aircraft) missingRfqFields.push("Aircraft");
+    // condition, delivery date could be checked if present in schema, omitting optional ones
+  } else if (reqType === "REPAIR") {
+    if (!enriched.aircraft) missingRfqFields.push("Aircraft");
+  } else if (reqType === "PARTS_EXCHANGE") {
+    if (!enriched.aircraft) missingRfqFields.push("Aircraft");
+  }
+
+  enriched.validation = {
+    isValid: missingCustomerFields.length === 0 && missingRfqFields.length === 0,
+    missingCustomerFields,
+    missingRfqFields
+  };
 
   res.json(GetRfqResponse.parse(enriched));
 });
@@ -270,13 +320,17 @@ router.post("/rfqs/:rfqId/reviews", async (req, res) => {
     let detail: any = null;
     let isDb = false;
     let dbId = rfqId;
+    let customerRow: any = null;
+    let rfqItemRow: any = null;
 
     if (rfqId > 1000 && db) {
       dbId = rfqId - 1000;
-      const rows = await db.select().from(rfqsTable).where(eq(rfqsTable.id, dbId));
+      const rows = await db.select().from(rfqsTable).leftJoin(customersTable, eq(rfqsTable.customerId, customersTable.id)).leftJoin(rfqItemsTable, eq(rfqsTable.id, rfqItemsTable.rfqId)).where(eq(rfqsTable.id, dbId));
       if (rows.length > 0) {
         isDb = true;
-        detail = rows[0];
+        detail = rows[0].rfqs;
+        customerRow = rows[0].customers;
+        rfqItemRow = rows[0].rfq_items;
       }
     } else {
       detail = rfqDetails.find((r) => r.id === rfqId) as any;
@@ -285,6 +339,41 @@ router.post("/rfqs/:rfqId/reviews", async (req, res) => {
     if (!detail) {
       res.status(404).json({ error: "RFQ not found" });
       return;
+    }
+
+    if (data.action === "STARTED_REVIEW" || data.action === "APPROVED") {
+      const missingCustomerFields: string[] = [];
+      const missingRfqFields: string[] = [];
+      
+      const sourceEmail = [...phase2Emails.values()].find((email) => email.linkedRfq?.id === rfqId);
+      
+      const cName = isDb ? customerRow?.name : detail.customer;
+      const cCompany = isDb ? customerRow?.company : detail.customerCompany;
+      let cEmail = isDb ? customerRow?.email : detail.customerEmail;
+      if (!cEmail && sourceEmail?.senderEmail) cEmail = sourceEmail.senderEmail;
+      
+      const cPhone = isDb ? customerRow?.phone : detail.customerPhone;
+      const cAddress = isDb ? customerRow?.address : detail.customerAddress;
+
+      if (!cName || cName === "Unknown") missingCustomerFields.push("Full Name");
+      if (!cCompany || cCompany === "Unknown") missingCustomerFields.push("Company");
+      if (!cEmail) missingCustomerFields.push("Email");
+      if (!cPhone) missingCustomerFields.push("Phone");
+      if (!cAddress) missingCustomerFields.push("Address");
+
+      const pNumber = isDb ? rfqItemRow?.partNumber : detail.partNumber;
+      const qty = isDb ? rfqItemRow?.quantity : detail.quantity;
+      const desc = isDb ? rfqItemRow?.description : detail.description;
+      const reqType = detail.requestType;
+
+      if (!pNumber) missingRfqFields.push("Part number");
+      if (isDb && !qty) missingRfqFields.push("Quantity");
+      if (reqType === "NEW_PART_PURCHASE" && isDb && !desc) missingRfqFields.push("Description");
+
+      if (missingCustomerFields.length > 0 || missingRfqFields.length > 0) {
+        res.status(400).json({ error: "Cannot proceed. Missing required information.", missingCustomerFields, missingRfqFields });
+        return;
+      }
     }
     
     let newStatus = detail.status;
@@ -323,6 +412,275 @@ router.post("/rfqs/:rfqId/reviews", async (req, res) => {
   } catch (error) {
     console.error("[POST /rfqs/:rfqId/reviews] Error adding review:", error);
     res.status(500).json({ error: "Failed to add review" });
+  }
+});
+
+router.patch("/rfqs/:rfqId/customer", async (req, res) => {
+  try {
+    const { rfqId } = GetRfqParams.parse(req.params);
+    const data = UpdateCustomerInfoBody.parse(req.body);
+    
+    let detail: any = null;
+    let isDb = false;
+    let dbId = rfqId;
+
+    if (rfqId > 1000 && db) {
+      dbId = rfqId - 1000;
+      const rows = await db.select().from(rfqsTable).leftJoin(customersTable, eq(rfqsTable.customerId, customersTable.id)).where(eq(rfqsTable.id, dbId));
+      if (rows.length > 0) {
+        isDb = true;
+        detail = {
+          id: rfqId,
+          rfqNumber: rows[0].rfqs.rfqNumber,
+          customerId: rows[0].customers?.id,
+          ...rows[0].rfqs
+        };
+      }
+    } else {
+      detail = rfqDetails.find((r) => r.id === rfqId) as any;
+    }
+
+    if (!detail) {
+      res.status(404).json({ error: "RFQ not found" });
+      return;
+    }
+
+    // Update Customer record
+    if (isDb && db && detail.customerId) {
+      await db.update(customersTable).set({
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.company !== undefined && { company: data.company }),
+        ...(data.email !== undefined && { email: data.email }),
+        ...(data.phone !== undefined && { phone: data.phone }),
+        ...(data.address !== undefined && { address: data.address }),
+      }).where(eq(customersTable.id, detail.customerId));
+    } else if (!isDb) {
+      if (data.name !== undefined) detail.customer = data.name;
+      if (data.company !== undefined) detail.customerCompany = data.company;
+      if (data.email !== undefined) detail.customerEmail = data.email;
+      if (data.phone !== undefined) detail.customerPhone = data.phone;
+      if (data.address !== undefined) detail.customerAddress = data.address;
+    }
+
+    // Re-run validation
+    let cName = isDb ? data.name || "Unknown" : detail.customer;
+    let cComp = isDb ? data.company || "Unknown" : detail.customerCompany;
+    let cEmail = isDb ? data.email : detail.customerEmail;
+    let cPhone = isDb ? data.phone : detail.customerPhone;
+    let cAddr = isDb ? data.address : detail.customerAddress;
+
+    // if db, refetch actual customer
+    if (isDb && db && detail.customerId) {
+      const cRows = await db.select().from(customersTable).where(eq(customersTable.id, detail.customerId));
+      if (cRows.length > 0) {
+        cName = cRows[0].name;
+        cComp = cRows[0].company;
+        cEmail = cRows[0].email;
+        cPhone = cRows[0].phone;
+        cAddr = cRows[0].address;
+      }
+    }
+
+    const missingCustomerFields: string[] = [];
+    const missingRfqFields: string[] = [];
+
+    if (!cName || cName === "Unknown") missingCustomerFields.push("Full Name");
+    if (!cComp || cComp === "Unknown") missingCustomerFields.push("Company");
+    if (!cEmail) missingCustomerFields.push("Email");
+    if (!cPhone) missingCustomerFields.push("Phone");
+    if (!cAddr) missingCustomerFields.push("Address");
+
+    if (!detail.partNumber) missingRfqFields.push("Part Number");
+    if (!detail.quantity) missingRfqFields.push("Quantity");
+    if (!detail.aircraft) missingRfqFields.push("Aircraft");
+
+    const isValid = missingCustomerFields.length === 0 && missingRfqFields.length === 0;
+
+    // Update RFQ Status if VALID and CURRENTLY NEEDS_INFORMATION
+    if (isValid && detail.status === "NEEDS_INFORMATION") {
+      detail.status = "READY_FOR_REVIEW";
+      if (isDb && db) {
+        await db.update(rfqsTable).set({ status: "READY_FOR_REVIEW" }).where(eq(rfqsTable.id, dbId));
+      } else {
+        const summary = rfqs.find((r) => r.id === rfqId);
+        if (summary) summary.status = "READY_FOR_REVIEW" as any;
+      }
+    }
+
+    // Record Audit History
+    if (isDb && db) {
+      await db.insert(aiReviewHistoryTable).values({
+        rfqId: dbId,
+        action: "CUSTOMER_INFO_UPDATED",
+        previousClassification: detail.requestType,
+        newClassification: detail.requestType,
+        notes: "Operator updated customer information.",
+      });
+    }
+
+    // Return updated detail (we don't strictly need to build the full object for mock since frontend will refetch, but we return a minimal or full object)
+    res.json(detail);
+  } catch (error) {
+    console.error("[PATCH /rfqs/:rfqId/customer] Error updating customer info:", error);
+    res.status(500).json({ error: "Failed to update customer info" });
+  }
+});
+
+router.post("/rfqs/:rfqId/request-info", async (req, res) => {
+  try {
+    const { rfqId } = GetRfqParams.parse(req.params);
+
+    const isDevelopmentMode = process.env.EMAIL_MODE === "development";
+    
+    if (!isDevelopmentMode && !isMicrosoftConfigured()) {
+      res.status(400).json({ error: "Microsoft Graph is not configured. Cannot send email." });
+      return;
+    }
+
+    let isDb = false;
+    let dbId = rfqId;
+    let detail: any = null;
+    let rfqNumber = "";
+    
+    let cName: string | undefined;
+    let cCompany: string | undefined;
+    let cEmail: string | undefined;
+    let cPhone: string | undefined;
+    let cAddress: string | undefined;
+    let partNumber: string | undefined;
+    let quantity: number | undefined;
+    let description: string | undefined;
+    let requestType: string | undefined;
+    let aircraft = "Unknown";
+
+    if (rfqId > 1000 && db) {
+      dbId = rfqId - 1000;
+      const rows = await db.select().from(rfqsTable).leftJoin(customersTable, eq(rfqsTable.customerId, customersTable.id)).leftJoin(rfqItemsTable, eq(rfqsTable.id, rfqItemsTable.rfqId)).where(eq(rfqsTable.id, dbId));
+      if (rows.length > 0) {
+        isDb = true;
+        detail = rows[0].rfqs;
+        rfqNumber = detail.rfqNumber;
+        cName = rows[0].customers?.name || undefined;
+        cCompany = rows[0].customers?.company || undefined;
+        cEmail = rows[0].customers?.email || undefined;
+        cPhone = rows[0].customers?.phone || undefined;
+        cAddress = rows[0].customers?.address || undefined;
+        partNumber = rows[0].rfq_items?.partNumber || undefined;
+        quantity = rows[0].rfq_items?.quantity || undefined;
+        description = rows[0].rfq_items?.description || undefined;
+        requestType = detail.requestType;
+      }
+    } else {
+      detail = rfqDetails.find((r) => r.id === rfqId) as any;
+      if (detail) {
+        rfqNumber = detail.rfqNumber;
+        cName = detail.customer;
+        cCompany = detail.customerCompany;
+        cEmail = detail.customerEmail;
+        cPhone = detail.customerPhone;
+        cAddress = detail.customerAddress;
+        partNumber = detail.partNumber;
+        quantity = detail.quantity;
+        description = detail.description;
+        requestType = detail.requestType;
+        if (detail.aircraft) aircraft = detail.aircraft;
+        
+        const review = phase2Reviews.get(rfqId);
+        const sourceE = [...phase2Emails.values()].find((email) => email.linkedRfq?.id === rfqId);
+        const analysis = review?.analysis ?? sourceE?.analysis;
+        if (analysis?.extractedData?.aircraft) aircraft = analysis.extractedData.aircraft as string;
+      }
+    }
+
+    if (!detail) {
+      res.status(404).json({ error: "RFQ not found" });
+      return;
+    }
+
+    const sourceEmail = [...phase2Emails.values()].find((email) => email.linkedRfq?.id === rfqId);
+    let parsedSenderEmail = null;
+    const sender = isDb ? cName : detail.sender;
+    if (sender && sender.includes("<") && sender.includes(">")) {
+      parsedSenderEmail = sender.split("<")[1].split(">")[0];
+    }
+    const effectiveEmail = cEmail || parsedSenderEmail || sourceEmail?.senderEmail;
+
+    if (!effectiveEmail) {
+      res.status(400).json({ error: "Customer email is missing. Cannot send email." });
+      return;
+    }
+
+    const missingCustomerFields: string[] = [];
+    const missingRfqFields: string[] = [];
+
+    if (!cName || cName === "Unknown") missingCustomerFields.push("Full Name");
+    if (!cCompany || cCompany === "Unknown") missingCustomerFields.push("Company");
+    if (!cPhone) missingCustomerFields.push("Phone");
+    if (!cAddress) missingCustomerFields.push("Address");
+
+    if (!partNumber) missingRfqFields.push("Part number");
+    if (isDb && !quantity) missingRfqFields.push("Quantity");
+    if (requestType === "NEW_PART_PURCHASE") {
+      if (isDb && !description) missingRfqFields.push("Description");
+      if (!aircraft || aircraft === "Unknown") missingRfqFields.push("Aircraft");
+    } else if (requestType === "REPAIR" || requestType === "PARTS_EXCHANGE") {
+      if (!aircraft || aircraft === "Unknown") missingRfqFields.push("Aircraft");
+    }
+
+    const emailSubject = `Additional Information Required – RFQ for ${partNumber || "Unknown Part"}`;
+    const missingFieldsList = [
+      ...missingCustomerFields.map(f => `- ${f}`),
+      ...missingRfqFields.map(f => `- ${f}`)
+    ].join('\n');
+
+    const emailBody = `Dear ${cName || "Customer"},\n\nThank you for your request regarding ${partNumber || "the requested part"} for the ${aircraft} aircraft.\n\nTo proceed with your RFQ and prepare the quotation, we require the following information:\n\n${missingFieldsList}\n\nPlease provide the above details at your earliest convenience. Once we receive the required information, our team will proceed with the RFQ review and quotation process.\n\nThank you for your cooperation.\n\nBest regards,\nM International\nAftermarket Operations Team`;
+
+    if (isDevelopmentMode) {
+      console.log(`[POST /rfqs/${rfqId}/request-info] Development Mode: Mocking email to ${effectiveEmail}. Subject: ${emailSubject}`);
+      if (db) {
+        try {
+          await db.insert(emailOutboxTable).values({
+            rfqId: rfqId,
+            recipient: effectiveEmail,
+            subject: emailSubject,
+            bodyText: emailBody,
+            status: "RECORDED",
+          });
+        } catch (err: any) {
+          console.error(`[POST /rfqs/${rfqId}/request-info] Failed to save development email:`, err.message);
+        }
+      }
+    } else {
+      try {
+        await sendEmail(effectiveEmail, emailSubject, emailBody);
+        console.log(`[POST /rfqs/${rfqId}/request-info] Sent email to ${effectiveEmail}. Subject: ${emailSubject}`);
+      } catch (err: any) {
+        console.error(`[POST /rfqs/${rfqId}/request-info] Failed to send email via Microsoft Graph:`, err.message);
+        res.status(500).json({ error: `Failed to send email: ${err.message}` });
+        return;
+      }
+    }
+
+    if (isDb && db) {
+      await db.update(rfqsTable).set({ status: "NEEDS_INFORMATION" }).where(eq(rfqsTable.id, dbId));
+      await db.insert(aiReviewHistoryTable).values({
+        rfqId: dbId,
+        action: "REQUESTED_INFO",
+        previousClassification: detail.requestType,
+        newClassification: detail.requestType,
+        notes: "Automated information request sent to customer.",
+        createdAt: new Date().toISOString(),
+      });
+    } else {
+      if (detail) detail.status = "NEEDS_INFORMATION";
+      const summary = rfqs.find((r) => r.id === rfqId);
+      if (summary) summary.status = "NEEDS_INFORMATION" as any;
+    }
+
+    res.json({ success: true, status: "NEEDS_INFORMATION", developmentMode: isDevelopmentMode });
+  } catch (error) {
+    console.error("[POST /rfqs/:rfqId/request-info] Error requesting info:", error);
+    res.status(500).json({ error: "Failed to request info" });
   }
 });
 
@@ -575,5 +933,36 @@ router.get("/rag/health", async (_req, res) => {
     res.status(500).json({ error: "RAG health check failed" });
   }
 });
+
+  router.get("/email-outbox", async (req, res) => {
+    try {
+      if (!db) {
+        res.status(500).json({ error: "Database not configured" });
+        return;
+      }
+      
+      const rows = await db
+        .select()
+        .from(emailOutboxTable)
+        .orderBy(desc(emailOutboxTable.createdAt));
+        
+      const response = GetEmailOutboxResponse.parse({
+        emails: rows.map((r: any) => ({
+          id: r.id,
+          rfqId: r.rfqId ?? null,
+          recipient: r.recipient,
+          subject: r.subject,
+          bodyText: r.bodyText,
+          status: r.status,
+          createdAt: r.createdAt.toISOString(),
+        }))
+      });
+      
+      res.json(response);
+    } catch (error) {
+      console.error("[GET /email-outbox] Error:", error);
+      res.status(500).json({ error: "Failed to fetch email outbox" });
+    }
+  });
 
 export default router;

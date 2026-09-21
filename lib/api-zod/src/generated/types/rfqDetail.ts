@@ -14,11 +14,15 @@ import type { ReviewHistoryEntry } from './reviewHistoryEntry';
 import type { Rfq } from './rfq';
 import type { RfqDetailCompliance } from './rfqDetailCompliance';
 import type { RfqDetailRagContextItem } from './rfqDetailRagContextItem';
+import type { ValidationStatus } from './validationStatus';
 
 export type RfqDetail = Rfq & ({
   description: string;
   customerId?: number;
+  customerEmail?: string | null;
   customerPhone?: string | null;
+  customerAddress?: string | null;
+  validation?: ValidationStatus;
   quantity: number;
   aircraft: string;
   notes: string;

@@ -13,5 +13,5 @@ export interface InventoryStatus {
   warehouseLocation?: string;
   supplier?: string;
   condition?: string;
-  expectedReplenishmentDate?: string;
+  expectedReplenishmentDate?: string | null;
 }

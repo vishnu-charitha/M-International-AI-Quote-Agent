@@ -18,6 +18,9 @@ import {
   useApproveAiReview,
   useDisconnectMicrosoft,
   useGetAiReview,
+  useGenerateQuote,
+  useGetQuotesForRfq,
+  getGetQuotesForRfqQueryKey,
   useGetEmail,
   useGetMicrosoftConnect,
   useGetMicrosoftStatus,
@@ -31,6 +34,8 @@ import {
   useUpdateAiReview,
   useUpdateRfq,
   useAddRfqReview,
+  useRequestRfqInfo,
+  useUpdateCustomerInfo,
 } from '@workspace/api-client-react';
 import type { EmailDetail } from '@workspace/api-client-react';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +49,7 @@ import {
   Cloud,
   Link2,
   Paperclip,
+  Pencil,
   RefreshCw,
   Save,
   Server,
@@ -54,6 +60,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { ConfidenceBar, LoadingRows, PageHeading, QueryState, SearchField, SectionTitle, StatusBadge } from '@/components/ops-primitives';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 function readable(value: string | null | undefined) {
   return (value ?? '—').replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase());
@@ -165,7 +173,31 @@ export function AiReviewPageV2() {
 }
 
 function ReviewStat({ label, value }: { label: string; value: string }) { return <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4"><div className="eyebrow mb-3">{label}</div><div className="mono text-[22px] font-medium tracking-[-.06em]">{value}</div></div>; }
-function Info({ label, value }: { label: string; value: string | null | undefined }) { return <div><div className="eyebrow mb-1.5">{label}</div><div className="break-words text-[11px] font-bold">{value || '—'}</div></div>; }
+function Info({ label, value }: { label: string; value: React.ReactNode }) { return <div><div className="eyebrow mb-1.5">{label}</div><div className="break-words text-[11px] font-bold">{value || '—'}</div></div>; }
+
+function renderValue(val: any): React.ReactNode {
+  if (val === null || val === undefined) return '—';
+  if (typeof val !== 'object') return String(val);
+  if (Array.isArray(val)) {
+    return (
+      <ul className="list-disc pl-3 space-y-1 mt-1">
+        {val.map((item, i) => (
+          <li key={i}>{renderValue(item)}</li>
+        ))}
+      </ul>
+    );
+  }
+  return (
+    <div className="space-y-1 mt-1">
+      {Object.entries(val).map(([k, v]) => (
+        <div key={k} className="flex flex-col sm:flex-row sm:gap-2">
+          <span className="text-[hsl(var(--muted-foreground))]">{readable(k)}:</span>
+          <span>{renderValue(v)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 function DevModeBanner({ label }: { label: string }) { return <div data-testid="status-development-ai" className="mb-5 flex items-center gap-2 rounded-md border border-[hsl(var(--accent)/.4)] bg-[hsl(var(--accent)/.1)] px-4 py-3 text-[11px] font-semibold text-[hsl(var(--primary))]"><Server size={14} /> {label}</div>; }
 
 export function AiReviewDetailPage() {
@@ -202,20 +234,38 @@ export function AiReviewDetailPage() {
 }
 
 export function RfqDetailPageV2() {
+  const isDevEmailMode = import.meta.env.VITE_EMAIL_MODE === 'development';
   const params = useParams<{ rfqId: string }>();
   const id = Number(params.rfqId);
   const rfq = useGetRfq(id, { query: { enabled: Number.isFinite(id), queryKey: getGetRfqQueryKey(id) } });
+  
+  // Fetch existing quotes to see if we should show 'View Quote' instead of 'Generate Quote'
+  const quotesForRfq = useGetQuotesForRfq(id, { query: { enabled: Number.isFinite(id) && (rfq.data?.status === 'APPROVED' || rfq.data?.status === 'QUOTED'), queryKey: getGetQuotesForRfqQueryKey(id) } });
+  const existingQuote = quotesForRfq.data?.[0];
+
   const updateRfq = useUpdateRfq();
   const addReview = useAddRfqReview();
+  const generateQuote = useGenerateQuote({
+    mutation: {
+      onSuccess: (data) => {
+        setLocation(`/quotes/${data.id}`);
+      }
+    }
+  });
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const requestInfo = useRequestRfqInfo();
 
   const [customerPhone, setCustomerPhone] = useState('');
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [reviewNotes, setReviewNotes] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showRequestInfoModal, setShowRequestInfoModal] = useState(false);
+  const [showEditCustomerModal, setShowEditCustomerModal] = useState(false);
+  const [editCustomerForm, setEditCustomerForm] = useState({ name: '', company: '', email: '', phone: '', address: '' });
+  
+  const updateCustomerInfo = useUpdateCustomerInfo();
 
   useEffect(() => {
     if (rfq.data && (rfq.data as any).customerPhone) {
@@ -227,10 +277,43 @@ export function RfqDetailPageV2() {
   if (rfq.isError || !rfq.data) return <><PageHeading eyebrow="RFQ record" title="Request unavailable" /><QueryState error onRetry={() => rfq.refetch()} /></>;
   
   const item = rfq.data;
-  const extended = item as typeof item & { customerPhone?: string | null; sourceEmail?: EmailDetail | null; analysis?: { reasoningSummary?: string; confidenceScore?: number; extractedData?: Record<string, unknown> } | null; reviewHistory?: Array<{ id: number; action: string; createdAt: string; notes: string }>; catalog?: any; inventory?: any; pricing?: any; compliance?: { status: string; reasons: string[] }; ragContext?: Array<{ content: string; metadata: any }> };
+  const extended = item as typeof item & { customerPhone?: string | null; customerCompany?: string | null; customerEmail?: string | null; customerAddress?: string | null; sourceEmail?: EmailDetail | null; analysis?: { reasoningSummary?: string; confidenceScore?: number; extractedData?: Record<string, unknown> } | null; reviewHistory?: Array<{ id: number; action: string; createdAt: string; notes: string }>; catalog?: any; inventory?: any; pricing?: any; compliance?: { status: string; reasons: string[] }; ragContext?: Array<{ content: string; metadata: any }>; validation?: { isValid: boolean; missingCustomerFields: string[]; missingRfqFields: string[] }; aircraft?: string };
   
   const isValidationRequired = item.status === RfqStatus.VALIDATION_REQUIRED;
+  const isNeedsInformation = item.status === 'NEEDS_INFORMATION';
   
+  const handleEditCustomerClick = () => {
+    setEditCustomerForm({
+      name: extended.customer || '',
+      company: extended.customerCompany || '',
+      email: extended.customerEmail || '',
+      phone: extended.customerPhone || '',
+      address: extended.customerAddress || ''
+    });
+    setShowEditCustomerModal(true);
+  };
+
+  const handleUpdateCustomer = async () => {
+    try {
+      await updateCustomerInfo.mutateAsync({
+        rfqId: id,
+        data: {
+          name: editCustomerForm.name || undefined,
+          company: editCustomerForm.company || undefined,
+          email: editCustomerForm.email || undefined,
+          phone: editCustomerForm.phone || undefined,
+          address: editCustomerForm.address || undefined
+        }
+      });
+      setShowEditCustomerModal(false);
+      queryClient.invalidateQueries({ queryKey: getGetRfqQueryKey(id) });
+      queryClient.invalidateQueries({ queryKey: getListRfqsQueryKey() });
+      toast({ title: 'Success', description: 'Customer information updated.' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error?.message || 'Failed to update customer info.', variant: 'destructive' });
+    }
+  };
+
   const handleSaveAndContinue = () => {
     updateRfq.mutate({
       rfqId: id,
@@ -243,6 +326,34 @@ export function RfqDetailPageV2() {
         queryClient.invalidateQueries({ queryKey: getGetRfqQueryKey(id) });
         queryClient.invalidateQueries({ queryKey: getListRfqsQueryKey() });
         toast({ title: 'Success', description: 'Customer phone updated.' });
+      }
+    });
+  };
+
+  const handleRequestInfo = () => {
+    requestInfo.mutate({
+      rfqId: id,
+      data: {
+        subject: `Additional Information Required – RFQ for ${item.partNumber}`,
+        body: `Dear ${item.customer},\n\nThank you for your request regarding ${item.partNumber} for the ${extended.aircraft} aircraft.\n\nTo proceed with your RFQ and prepare the quotation, we require the following information:\n\n${(extended.validation?.missingCustomerFields || []).map(f => `- ${f}`).join('\n')}\n${(extended.validation?.missingRfqFields || []).map(f => `- ${f}`).join('\n')}\n\nPlease provide the above details at your earliest convenience. Once we receive the required information, our team will proceed with the RFQ review and quotation process.\n\nThank you for your cooperation.\n\nBest regards,\nM International\nAftermarket Operations Team`
+      }
+    }, {
+      onSuccess: (res: any) => {
+        queryClient.invalidateQueries({ queryKey: getGetRfqQueryKey(id) });
+        queryClient.invalidateQueries({ queryKey: getListRfqsQueryKey() });
+        if (res.developmentMode) {
+          toast({ title: 'Success', description: 'Information request recorded in development mode. Email was not sent.' });
+        } else {
+          toast({ title: 'Success', description: 'Request for information sent.' });
+        }
+        setShowRequestModal(false);
+      },
+      onError: (err: any) => {
+        toast({ 
+          title: 'Error', 
+          description: err?.response?.data?.error || err.message || 'Failed to send request.',
+          variant: 'destructive'
+        });
       }
     });
   };
@@ -265,7 +376,7 @@ export function RfqDetailPageV2() {
         setShowRejectModal(false);
         setShowRequestInfoModal(false);
       },
-      onError: (err) => {
+      onError: () => {
         toast({ title: 'Error', description: 'Failed to apply review action.', variant: 'destructive' });
       }
     });
@@ -273,16 +384,77 @@ export function RfqDetailPageV2() {
 
   return <div className="fade-up"><button data-testid="button-back-rfq-record" onClick={() => setLocation('/rfq-inbox')} className="mb-6 inline-flex items-center gap-2 text-[11px] font-bold text-[hsl(var(--muted-foreground))]"><ArrowLeft size={14} /> Back to RFQ inbox</button><PageHeading eyebrow={`RFQ record / ${item.rfqNumber}`} title={item.customerCompany} description={`${item.partNumber} · received ${item.age}`} action={<StatusBadge value={item.status} />} />
   
-  {(item.status === 'READY_FOR_REVIEW' || item.status === 'NEEDS_HUMAN_REVIEW') && (
+  {extended.validation && (
+    <div className="mb-6 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-sm">
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="eyebrow">Customer Information</div>
+            {isNeedsInformation && (
+              <button 
+                onClick={handleEditCustomerClick}
+                className="flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-700 font-medium bg-amber-50 px-2 py-0.5 rounded transition-colors"
+              >
+                <Pencil size={12} />
+                Edit
+              </button>
+            )}
+          </div>
+          <ul className="space-y-2 text-[12px]">
+            <li className="flex items-center gap-2">
+              {extended.validation.missingCustomerFields.includes("Full Name") ? <X className="text-red-500" size={14} /> : <CheckCircle2 className="text-emerald-500" size={14} />}
+              <span>Full Name</span>
+            </li>
+            <li className="flex items-center gap-2">
+              {extended.validation.missingCustomerFields.includes("Company") ? <X className="text-red-500" size={14} /> : <CheckCircle2 className="text-emerald-500" size={14} />}
+              <span>Company</span>
+            </li>
+            <li className="flex items-center gap-2">
+              {extended.validation.missingCustomerFields.includes("Email") ? <X className="text-red-500" size={14} /> : <CheckCircle2 className="text-emerald-500" size={14} />}
+              <span>Email</span>
+            </li>
+            <li className="flex items-center gap-2">
+              {extended.validation.missingCustomerFields.includes("Phone") ? <X className="text-red-500" size={14} /> : <CheckCircle2 className="text-emerald-500" size={14} />}
+              <span>Phone</span>
+            </li>
+            <li className="flex items-center gap-2">
+              {extended.validation.missingCustomerFields.includes("Address") ? <X className="text-red-500" size={14} /> : <CheckCircle2 className="text-emerald-500" size={14} />}
+              <span>Address</span>
+            </li>
+          </ul>
+        </div>
+        <div className="text-right">
+          <div className="eyebrow mb-2">Status</div>
+          <div className={`text-[14px] font-bold ${extended.validation.isValid ? 'text-emerald-600' : 'text-amber-600'}`}>
+            {extended.validation.isValid ? 'COMPLETE' : 'INCOMPLETE'}
+          </div>
+          {!extended.validation.isValid && (
+            <div className="mt-4 text-left">
+              <div className="text-[11px] font-semibold text-amber-700 mb-2">Missing:</div>
+              <ul className="text-[11px] text-amber-700 space-y-1 pl-3 list-disc">
+                {extended.validation.missingCustomerFields.map(f => <li key={f}>{f}</li>)}
+                {extended.validation.missingRfqFields.map(f => <li key={f}>{f}</li>)}
+              </ul>
+              <Button onClick={() => setShowRequestModal(true)} className="mt-4 border border-amber-300 bg-white text-amber-800 hover:bg-amber-100 text-[11px] h-8">
+                Request Information
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )}
+
+  {extended.validation?.isValid && ['NEW', 'PROCESSING', 'VALIDATION_REQUIRED', 'READY_FOR_REVIEW', 'NEEDS_HUMAN_REVIEW'].includes(item.status) && (
     <div className="mb-6 rounded-lg border border-blue-300 bg-blue-50 p-6 shadow-sm">
       <div className="flex items-start gap-4">
         <div className="mt-1 flex shrink-0 items-center justify-center rounded-full bg-blue-200 p-2 text-blue-700">
           <CheckCircle2 size={18} strokeWidth={2.5} />
         </div>
         <div className="flex-1">
-          <h3 className="text-[14px] font-extrabold text-blue-900">Ready for Human Review</h3>
+          <h3 className="text-[14px] font-extrabold text-blue-900">Operator Review</h3>
           <p className="mt-1 text-[12px] leading-relaxed text-blue-800/90">
-            This RFQ has passed validation and is waiting for an operator to review it and generate a quote.
+            This RFQ is waiting for an operator to review it and generate a quote.
           </p>
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Button 
@@ -325,17 +497,33 @@ export function RfqDetailPageV2() {
     </div>
   )}
 
-  {item.status === 'APPROVED' && (
+  {(item.status === 'APPROVED' || item.status === 'QUOTED') && (
     <div className="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 p-6 shadow-sm flex items-center justify-between">
       <div>
-        <h3 className="text-[14px] font-extrabold text-emerald-900">RFQ Approved</h3>
+        <h3 className="text-[14px] font-extrabold text-emerald-900">
+          {item.status === 'QUOTED' || existingQuote ? 'Quotation Generated' : 'RFQ Approved'}
+        </h3>
         <p className="mt-1 text-[12px] leading-relaxed text-emerald-800/90">
-          This request has been approved and is ready for quoting.
+          {item.status === 'QUOTED' || existingQuote 
+            ? 'A quotation has been generated for this request.'
+            : 'This request has been approved and is ready for quoting.'}
         </p>
       </div>
-      <Button className="bg-emerald-600 text-white hover:bg-emerald-700">
-        Generate Quote
-      </Button>
+      {(item.status === 'QUOTED' || existingQuote) ? (
+        <Button 
+          onClick={() => setLocation(`/quotes/${existingQuote?.id || ''}`)}
+          disabled={!existingQuote}
+          className="bg-emerald-600 text-white hover:bg-emerald-700">
+          View Quote
+        </Button>
+      ) : (
+        <Button 
+          onClick={() => generateQuote.mutate({ rfqId: item.id })}
+          disabled={generateQuote.isPending}
+          className="bg-emerald-600 text-white hover:bg-emerald-700">
+          {generateQuote.isPending ? 'Generating...' : 'Generate Quote'}
+        </Button>
+      )}
     </div>
   )}
 
@@ -434,35 +622,41 @@ export function RfqDetailPageV2() {
     )}
   </div>
 
-  <div className="grid gap-6 xl:grid-cols-[1.2fr_.8fr]"><section className="space-y-5"><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="eyebrow mb-3">Request brief</div><h2 className="text-[17px] font-extrabold">{item.emailSubject || 'Manual Entry'}</h2><p className="mt-4 text-[13px] leading-7 text-[hsl(var(--muted-foreground))]">{extended.description}</p><div className="mt-6 grid gap-4 border-t border-[hsl(var(--border))] pt-5 sm:grid-cols-3"><Info label="Part number" value={item.partNumber} /><Info label="Quantity" value={String(extended.quantity ?? 1)} /><Info label="Aircraft" value={extended.aircraft} /></div></div><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-2">Operator notes</div><p className="text-[11px] leading-6 text-[hsl(var(--muted-foreground))]">{extended.notes || 'No operator notes have been added to this record.'}</p></div>{extended.sourceEmail && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="mb-3 flex items-center justify-between"><div className="eyebrow">Source email</div><Link data-testid="link-rfq-source-email" href={`/emails/${extended.sourceEmail.id}`} className="text-[10px] font-bold text-[hsl(var(--primary))]">Open message <ArrowRight size={12} className="ml-1 inline" /></Link></div><div className="text-[12px] font-bold">{extended.sourceEmail.subject}</div><div className="mt-2 line-clamp-4 whitespace-pre-wrap text-[11px] leading-6 text-[hsl(var(--muted-foreground))]">{extended.sourceEmail.bodyText}</div></div>}{extended.analysis && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="eyebrow mb-3">AI analysis</div><ConfidenceBar value={extended.analysis.confidenceScore ?? item.confidence} /><p className="mt-3 text-[11px] leading-5 text-[hsl(var(--muted-foreground))]">{extended.analysis.reasoningSummary || 'No reasoning summary was returned.'}</p></div>}</section><aside className="space-y-5"><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Request metadata</div><div className="space-y-4"><Info label="Customer" value={item.customer} /><Info label="Phone" value={extended.customerPhone} /><Info label="Sender" value={extended.sender} /><Info label="Source" value={readable(item.source)} /><Info label="Request type" value={readable(item.requestType)} /><Info label="Priority" value={readable(item.priority)} /></div></div>{extended.analysis?.extractedData && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Extracted items</div><div className="space-y-3">{Object.entries(extended.analysis.extractedData).slice(0, 8).map(([key, value]) => <Info key={key} label={readable(key)} value={String(value ?? '—')} />)}</div></div>}{extended.reviewHistory && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Review history</div>{extended.reviewHistory.length ? extended.reviewHistory.map((entry) => <div key={entry.id} className="mb-3 border-l-2 border-[hsl(var(--accent))] pl-3"><div className="text-[11px] font-bold">{readable(entry.action)}</div><div className="text-[10px] text-[hsl(var(--muted-foreground))]">{formatDate(entry.createdAt)}</div></div>) : <div className="text-[11px] text-[hsl(var(--muted-foreground))]">No review history available.</div>}</div>}</aside></div>
+  <div className="grid gap-6 xl:grid-cols-[1.2fr_.8fr]"><section className="space-y-5"><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="eyebrow mb-3">Request brief</div><h2 className="text-[17px] font-extrabold">{item.emailSubject || 'Manual Entry'}</h2><p className="mt-4 text-[13px] leading-7 text-[hsl(var(--muted-foreground))]">{extended.description}</p><div className="mt-6 grid gap-4 border-t border-[hsl(var(--border))] pt-5 sm:grid-cols-3"><Info label="Part number" value={item.partNumber} /><Info label="Quantity" value={String(extended.quantity ?? 1)} /><Info label="Aircraft" value={extended.aircraft} /></div></div><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-2">Operator notes</div><p className="text-[11px] leading-6 text-[hsl(var(--muted-foreground))]">{extended.notes || 'No operator notes have been added to this record.'}</p></div>{extended.sourceEmail && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="mb-3 flex items-center justify-between"><div className="eyebrow">Source email</div><Link data-testid="link-rfq-source-email" href={`/emails/${extended.sourceEmail.id}`} className="text-[10px] font-bold text-[hsl(var(--primary))]">Open message <ArrowRight size={12} className="ml-1 inline" /></Link></div><div className="text-[12px] font-bold">{extended.sourceEmail.subject}</div><div className="mt-2 line-clamp-4 whitespace-pre-wrap text-[11px] leading-6 text-[hsl(var(--muted-foreground))]">{extended.sourceEmail.bodyText}</div></div>}{extended.analysis && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="eyebrow mb-3">AI analysis</div><ConfidenceBar value={extended.analysis.confidenceScore ?? item.confidence} /><p className="mt-3 text-[11px] leading-5 text-[hsl(var(--muted-foreground))]">{extended.analysis.reasoningSummary || 'No reasoning summary was returned.'}</p></div>}</section><aside className="space-y-5"><div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Request metadata</div><div className="space-y-4"><Info label="Customer" value={item.customer} /><Info label="Phone" value={extended.customerPhone} /><Info label="Sender" value={extended.sender} /><Info label="Source" value={readable(item.source)} /><Info label="Request type" value={readable(item.requestType)} /><Info label="Priority" value={readable(item.priority)} /></div></div>{extended.analysis?.extractedData && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Extracted items</div><div className="space-y-3">{Object.entries(extended.analysis.extractedData).slice(0, 8).map(([key, value]) => <Info key={key} label={readable(key)} value={renderValue(value)} />)}</div></div>}{extended.reviewHistory && <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5"><div className="eyebrow mb-4">Review history</div>{extended.reviewHistory.length ? extended.reviewHistory.map((entry) => <div key={entry.id} className="mb-3 border-l-2 border-[hsl(var(--accent))] pl-3"><div className="text-[11px] font-bold">{readable(entry.action)}</div><div className="text-[10px] text-[hsl(var(--muted-foreground))]">{formatDate(entry.createdAt)}</div></div>) : <div className="text-[11px] text-[hsl(var(--muted-foreground))]">No review history available.</div>}</div>}</aside></div>
   
   {showRequestModal && (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-xl bg-[hsl(var(--card))] shadow-2xl overflow-hidden fade-up">
         <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-5 py-4 bg-[hsl(var(--muted)/.3)]">
-          <h2 className="text-[15px] font-extrabold text-[hsl(var(--foreground))]">Request Information</h2>
+          <h2 className="text-[15px] font-extrabold text-[hsl(var(--foreground))]">Request Missing Information</h2>
           <button onClick={() => setShowRequestModal(false)} className="rounded-full p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--accent-foreground))] transition-colors">
             <X size={16} />
           </button>
         </div>
         <div className="p-6">
           <p className="mb-4 text-[12px] leading-relaxed text-[hsl(var(--muted-foreground))]">
-            Copy the following message to request the missing information from the customer.
+            The following email will be sent to the customer to request the missing information.
           </p>
-          <div className="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--muted)/.3)] p-4">
+          {isDevEmailMode && (
+            <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 text-[12px] font-bold text-amber-800">
+              Development Mode — Email not actually sent
+            </div>
+          )}
+          <div className="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--muted)/.3)] p-4 text-left">
+            <div className="mb-4 space-y-2 border-b border-[hsl(var(--border))] pb-4 text-[12px]">
+              <div><span className="font-bold text-[hsl(var(--muted-foreground))]">To:</span> <span className="text-[hsl(var(--foreground))]">{item.customer} &lt;{extended.customerEmail || 'Unknown Email'}&gt;</span></div>
+              <div><span className="font-bold text-[hsl(var(--muted-foreground))]">Subject:</span> <span className="text-[hsl(var(--foreground))]">Additional Information Required – RFQ for {item.partNumber}</span></div>
+            </div>
             <p className="whitespace-pre-wrap text-[12px] leading-relaxed text-[hsl(var(--foreground)/.9)] font-medium">
-              {`Hello ${item.customer},\n\nWe are processing your request (${item.rfqNumber}) for ${item.partNumber}, but we are missing a required phone number to proceed.\n\nPlease reply to this email with your phone number.\n\nThank you,\nM International Quote Agent`}
+              {`Dear ${item.customer},\n\nThank you for your request regarding ${item.partNumber} for the ${extended.aircraft} aircraft.\n\nTo proceed with your RFQ and prepare the quotation, we require the following information:\n\n${(extended.validation?.missingCustomerFields || []).map(f => `- ${f}`).join('\n')}\n${(extended.validation?.missingRfqFields || []).map(f => `- ${f}`).join('\n')}\n\nPlease provide the above details at your earliest convenience. Once we receive the required information, our team will proceed with the RFQ review and quotation process.\n\nThank you for your cooperation.\n\nBest regards,\nM International\nAftermarket Operations Team`}
             </p>
           </div>
           <div className="mt-6 flex justify-end gap-3">
             <Button onClick={() => setShowRequestModal(false)} className="border border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]">
               Close
             </Button>
-            <Button onClick={() => {
-              navigator.clipboard.writeText(`Hello ${item.customer},\n\nWe are processing your request (${item.rfqNumber}) for ${item.partNumber}, but we are missing a required phone number to proceed.\n\nPlease reply to this email with your phone number.\n\nThank you,\nM International Quote Agent`);
-              setShowRequestModal(false);
-            }} className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-90">
-              <CheckCircle2 size={14} className="mr-1" /> Copy Message
+            <Button disabled={requestInfo.isPending} onClick={handleRequestInfo} className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-90">
+              {requestInfo.isPending ? (isDevEmailMode ? 'Recording...' : 'Sending...') : (isDevEmailMode ? 'Record Email' : 'Send Email')}
             </Button>
           </div>
         </div>
@@ -500,6 +694,51 @@ export function RfqDetailPageV2() {
           <div className="mt-6 flex justify-end gap-3">
             <Button onClick={() => setShowRejectModal(false)} className="border border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]">Cancel</Button>
             <Button disabled={!reviewNotes.trim() || addReview.isPending} onClick={() => handleReviewAction('REJECTED')} className="bg-red-600 text-white hover:bg-red-700">Confirm Rejection</Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {showEditCustomerModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-xl bg-[hsl(var(--card))] shadow-2xl overflow-hidden fade-up">
+        <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-5 py-4 bg-[hsl(var(--muted)/.3)]">
+          <h2 className="text-[15px] font-extrabold text-[hsl(var(--foreground))]">Edit Customer Information</h2>
+          <button onClick={() => setShowEditCustomerModal(false)} className="rounded-full p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="p-6">
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input id="name" value={editCustomerForm.name} onChange={(e) => setEditCustomerForm(prev => ({...prev, name: e.target.value}))} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="company">Company</Label>
+              <Input id="company" value={editCustomerForm.company} onChange={(e) => setEditCustomerForm(prev => ({...prev, company: e.target.value}))} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={editCustomerForm.email} onChange={(e) => setEditCustomerForm(prev => ({...prev, email: e.target.value}))} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input id="phone" value={editCustomerForm.phone} onChange={(e) => setEditCustomerForm(prev => ({...prev, phone: e.target.value}))} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="address">Address</Label>
+              <Input id="address" value={editCustomerForm.address} onChange={(e) => setEditCustomerForm(prev => ({...prev, address: e.target.value}))} />
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end gap-3">
+            <Button onClick={() => setShowEditCustomerModal(false)} className="border border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--accent))]">
+              Cancel
+            </Button>
+            <Button disabled={updateCustomerInfo.isPending} onClick={handleUpdateCustomer} className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-sm hover:opacity-90">
+              {updateCustomerInfo.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
           </div>
         </div>
       </div>

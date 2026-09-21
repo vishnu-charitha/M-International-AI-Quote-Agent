@@ -8,6 +8,7 @@ export const customersTable = pgTable("customers", {
   company: varchar("company", { length: 200 }).notNull(),
   email: varchar("email", { length: 320 }).notNull(),
   phone: varchar("phone", { length: 40 }),
+  address: varchar("address", { length: 500 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

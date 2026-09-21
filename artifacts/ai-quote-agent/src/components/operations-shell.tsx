@@ -40,6 +40,7 @@ const groups: NavGroup[] = [
       { label: 'RFQ inbox', href: '/rfq-inbox', icon: Inbox, badge: '12' },
       { label: 'AI review', href: '/ai-review', icon: Sparkles, badge: '4' },
       { label: 'Email inbox', href: '/email-inbox', icon: FileText },
+      { label: 'Email outbox', href: '/email-outbox', icon: ArrowUpRight },
     ],
   },
   {

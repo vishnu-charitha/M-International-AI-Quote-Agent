@@ -37,15 +37,22 @@ import type {
   ErrorResponse,
   HealthStatus,
   InventoryStatus,
+  ListEmailOutboxResponse,
   ListRfqsParams,
   MicrosoftIntegrationStatus,
   PricingRequest,
   PricingResponse,
+  Quote,
   ReclassifyReviewInput,
+  RequestInfoInput,
+  RequestInfoResponse,
   Rfq,
   RfqDetail,
   SearchCatalogParams,
+  SendQuoteInput,
+  UpdateCustomerInput,
   UpdateMicrosoftConfigInput,
+  UpdateQuoteStatusInput,
   UpdateReviewInput,
   UpdateRfqInput
 } from './api.schemas';
@@ -607,6 +614,78 @@ export const useUpdateRfq = <TError = ErrorType<ErrorResponse>,
       return useMutation(getUpdateRfqMutationOptions(options));
     }
 
+export const getUpdateCustomerInfoUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/rfqs/${rfqId}/customer`
+}
+
+/**
+ * @summary Update the customer information for an RFQ
+ */
+export const updateCustomerInfo = async (rfqId: number,
+    updateCustomerInput: UpdateCustomerInput, options?: Parameters<typeof customFetch>[1]): Promise<RfqDetail> => {
+
+  return customFetch<RfqDetail>(getUpdateCustomerInfoUrl(rfqId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateCustomerInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateCustomerInfoMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCustomerInfo>>, TError,{rfqId: number;data: BodyType<UpdateCustomerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCustomerInfo>>, TError,{rfqId: number;data: BodyType<UpdateCustomerInput>}, TContext> => {
+
+const mutationKey = ['updateCustomerInfo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCustomerInfo>>, {rfqId: number;data: BodyType<UpdateCustomerInput>}> = (props) => {
+          const {rfqId,data} = props ?? {};
+
+          return  updateCustomerInfo(rfqId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCustomerInfoMutationResult = NonNullable<Awaited<ReturnType<typeof updateCustomerInfo>>>
+    export type UpdateCustomerInfoMutationBody = BodyType<UpdateCustomerInput>
+    export type UpdateCustomerInfoMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Update the customer information for an RFQ
+ */
+export const useUpdateCustomerInfo = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCustomerInfo>>, TError,{rfqId: number;data: BodyType<UpdateCustomerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCustomerInfo>>,
+        TError,
+        {rfqId: number;data: BodyType<UpdateCustomerInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateCustomerInfoMutationOptions(options));
+    }
+
 export const getAddRfqReviewUrl = (rfqId: number,) => {
 
 
@@ -677,6 +756,78 @@ export const useAddRfqReview = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getAddRfqReviewMutationOptions(options));
+    }
+
+export const getRequestRfqInfoUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/rfqs/${rfqId}/request-info`
+}
+
+/**
+ * @summary Send an email requesting missing customer/RFQ information
+ */
+export const requestRfqInfo = async (rfqId: number,
+    requestInfoInput: RequestInfoInput, options?: Parameters<typeof customFetch>[1]): Promise<RequestInfoResponse> => {
+
+  return customFetch<RequestInfoResponse>(getRequestRfqInfoUrl(rfqId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(requestInfoInput)
+  }
+);}
+
+
+
+
+
+export const getRequestRfqInfoMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestRfqInfo>>, TError,{rfqId: number;data: BodyType<RequestInfoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestRfqInfo>>, TError,{rfqId: number;data: BodyType<RequestInfoInput>}, TContext> => {
+
+const mutationKey = ['requestRfqInfo'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestRfqInfo>>, {rfqId: number;data: BodyType<RequestInfoInput>}> = (props) => {
+          const {rfqId,data} = props ?? {};
+
+          return  requestRfqInfo(rfqId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestRfqInfoMutationResult = NonNullable<Awaited<ReturnType<typeof requestRfqInfo>>>
+    export type RequestRfqInfoMutationBody = BodyType<RequestInfoInput>
+    export type RequestRfqInfoMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Send an email requesting missing customer/RFQ information
+ */
+export const useRequestRfqInfo = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestRfqInfo>>, TError,{rfqId: number;data: BodyType<RequestInfoInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestRfqInfo>>,
+        TError,
+        {rfqId: number;data: BodyType<RequestInfoInput>},
+        TContext
+      > => {
+      return useMutation(getRequestRfqInfoMutationOptions(options));
     }
 
 export const getSearchCatalogUrl = (params: SearchCatalogParams,) => {
@@ -910,6 +1061,83 @@ export const useCalculatePricing = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCalculatePricingMutationOptions(options));
     }
+
+export const getGetEmailOutboxUrl = () => {
+
+
+
+
+  return `/api/email-outbox`
+}
+
+/**
+ * @summary List development mode email outbox records
+ */
+export const getEmailOutbox = async ( options?: Parameters<typeof customFetch>[1]): Promise<ListEmailOutboxResponse> => {
+
+  return customFetch<ListEmailOutboxResponse>(getGetEmailOutboxUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEmailOutboxQueryKey = () => {
+    return [
+    `/api/email-outbox`
+    ] as const;
+    }
+
+
+export const getGetEmailOutboxQueryOptions = <TData = Awaited<ReturnType<typeof getEmailOutbox>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailOutbox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEmailOutboxQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEmailOutbox>>> = ({ signal }) => getEmailOutbox({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEmailOutbox>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEmailOutboxQueryResult = NonNullable<Awaited<ReturnType<typeof getEmailOutbox>>>
+export type GetEmailOutboxQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List development mode email outbox records
+ */
+
+export function useGetEmailOutbox<TData = Awaited<ReturnType<typeof getEmailOutbox>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEmailOutbox>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEmailOutboxQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListEmailsUrl = () => {
 
@@ -2238,5 +2466,374 @@ export const useDisconnectMicrosoft = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDisconnectMicrosoftMutationOptions(options));
+    }
+
+export const getGetQuotesForRfqUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/rfqs/${rfqId}/quotes`
+}
+
+/**
+ * @summary Get all quotes for an RFQ
+ */
+export const getQuotesForRfq = async (rfqId: number, options?: Parameters<typeof customFetch>[1]): Promise<Quote[]> => {
+
+  return customFetch<Quote[]>(getGetQuotesForRfqUrl(rfqId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQuotesForRfqQueryKey = (rfqId: number,) => {
+    return [
+    `/api/rfqs/${rfqId}/quotes`
+    ] as const;
+    }
+
+
+export const getGetQuotesForRfqQueryOptions = <TData = Awaited<ReturnType<typeof getQuotesForRfq>>, TError = ErrorType<unknown>>(rfqId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuotesForRfq>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQuotesForRfqQueryKey(rfqId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQuotesForRfq>>> = ({ signal }) => getQuotesForRfq(rfqId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: rfqId !== null && rfqId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQuotesForRfq>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQuotesForRfqQueryResult = NonNullable<Awaited<ReturnType<typeof getQuotesForRfq>>>
+export type GetQuotesForRfqQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get all quotes for an RFQ
+ */
+
+export function useGetQuotesForRfq<TData = Awaited<ReturnType<typeof getQuotesForRfq>>, TError = ErrorType<unknown>>(
+ rfqId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuotesForRfq>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQuotesForRfqQueryOptions(rfqId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGenerateQuoteUrl = (rfqId: number,) => {
+
+
+
+
+  return `/api/rfqs/${rfqId}/quotes`
+}
+
+/**
+ * @summary Generate a draft quote for an RFQ
+ */
+export const generateQuote = async (rfqId: number, options?: Parameters<typeof customFetch>[1]): Promise<Quote> => {
+
+  return customFetch<Quote>(getGenerateQuoteUrl(rfqId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getGenerateQuoteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateQuote>>, TError,{rfqId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateQuote>>, TError,{rfqId: number}, TContext> => {
+
+const mutationKey = ['generateQuote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateQuote>>, {rfqId: number}> = (props) => {
+          const {rfqId} = props ?? {};
+
+          return  generateQuote(rfqId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateQuoteMutationResult = NonNullable<Awaited<ReturnType<typeof generateQuote>>>
+
+    export type GenerateQuoteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate a draft quote for an RFQ
+ */
+export const useGenerateQuote = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateQuote>>, TError,{rfqId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateQuote>>,
+        TError,
+        {rfqId: number},
+        TContext
+      > => {
+      return useMutation(getGenerateQuoteMutationOptions(options));
+    }
+
+export const getGetQuoteUrl = (quoteId: number,) => {
+
+
+
+
+  return `/api/quotes/${quoteId}`
+}
+
+/**
+ * @summary Get quote details
+ */
+export const getQuote = async (quoteId: number, options?: Parameters<typeof customFetch>[1]): Promise<Quote> => {
+
+  return customFetch<Quote>(getGetQuoteUrl(quoteId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQuoteQueryKey = (quoteId: number,) => {
+    return [
+    `/api/quotes/${quoteId}`
+    ] as const;
+    }
+
+
+export const getGetQuoteQueryOptions = <TData = Awaited<ReturnType<typeof getQuote>>, TError = ErrorType<ErrorResponse>>(quoteId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuote>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQuoteQueryKey(quoteId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQuote>>> = ({ signal }) => getQuote(quoteId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: quoteId !== null && quoteId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQuote>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQuoteQueryResult = NonNullable<Awaited<ReturnType<typeof getQuote>>>
+export type GetQuoteQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get quote details
+ */
+
+export function useGetQuote<TData = Awaited<ReturnType<typeof getQuote>>, TError = ErrorType<ErrorResponse>>(
+ quoteId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuote>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQuoteQueryOptions(quoteId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateQuoteStatusUrl = (quoteId: number,) => {
+
+
+
+
+  return `/api/quotes/${quoteId}/status`
+}
+
+/**
+ * @summary Update quote status
+ */
+export const updateQuoteStatus = async (quoteId: number,
+    updateQuoteStatusInput: UpdateQuoteStatusInput, options?: Parameters<typeof customFetch>[1]): Promise<Quote> => {
+
+  return customFetch<Quote>(getUpdateQuoteStatusUrl(quoteId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateQuoteStatusInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateQuoteStatusMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateQuoteStatus>>, TError,{quoteId: number;data: BodyType<UpdateQuoteStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateQuoteStatus>>, TError,{quoteId: number;data: BodyType<UpdateQuoteStatusInput>}, TContext> => {
+
+const mutationKey = ['updateQuoteStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateQuoteStatus>>, {quoteId: number;data: BodyType<UpdateQuoteStatusInput>}> = (props) => {
+          const {quoteId,data} = props ?? {};
+
+          return  updateQuoteStatus(quoteId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateQuoteStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateQuoteStatus>>>
+    export type UpdateQuoteStatusMutationBody = BodyType<UpdateQuoteStatusInput>
+    export type UpdateQuoteStatusMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update quote status
+ */
+export const useUpdateQuoteStatus = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateQuoteStatus>>, TError,{quoteId: number;data: BodyType<UpdateQuoteStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateQuoteStatus>>,
+        TError,
+        {quoteId: number;data: BodyType<UpdateQuoteStatusInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateQuoteStatusMutationOptions(options));
+    }
+
+export const getSendQuoteUrl = (quoteId: number,) => {
+
+
+
+
+  return `/api/quotes/${quoteId}/send`
+}
+
+/**
+ * @summary Send the quote to the customer via email
+ */
+export const sendQuote = async (quoteId: number,
+    sendQuoteInput: SendQuoteInput, options?: Parameters<typeof customFetch>[1]): Promise<Quote> => {
+
+  return customFetch<Quote>(getSendQuoteUrl(quoteId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(sendQuoteInput)
+  }
+);}
+
+
+
+
+
+export const getSendQuoteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendQuote>>, TError,{quoteId: number;data: BodyType<SendQuoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendQuote>>, TError,{quoteId: number;data: BodyType<SendQuoteInput>}, TContext> => {
+
+const mutationKey = ['sendQuote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendQuote>>, {quoteId: number;data: BodyType<SendQuoteInput>}> = (props) => {
+          const {quoteId,data} = props ?? {};
+
+          return  sendQuote(quoteId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendQuoteMutationResult = NonNullable<Awaited<ReturnType<typeof sendQuote>>>
+    export type SendQuoteMutationBody = BodyType<SendQuoteInput>
+    export type SendQuoteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Send the quote to the customer via email
+ */
+export const useSendQuote = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendQuote>>, TError,{quoteId: number;data: BodyType<SendQuoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendQuote>>,
+        TError,
+        {quoteId: number;data: BodyType<SendQuoteInput>},
+        TContext
+      > => {
+      return useMutation(getSendQuoteMutationOptions(options));
     }
 

@@ -23,4 +23,5 @@ export const RfqStatus = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   NEEDS_INFORMATION: 'NEEDS_INFORMATION',
+  QUOTED: 'QUOTED',
 } as const;

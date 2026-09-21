@@ -7,8 +7,10 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { DashboardPage, PlaceholderPage, RfqInboxPage, PartsExchangePage, placeholders } from '@/pages/operations';
 import { AiReviewDetailPage, AiReviewPageV2, EmailDetailPage, EmailInboxPageV2, RfqDetailPageV2, SettingsPage } from '@/pages/phase-two';
+import { EmailOutboxPage } from '@/pages/email-outbox';
 import { EmailConfigurationPage } from '@/pages/email-configuration';
 import { ManualRfqIntakePage } from '@/pages/rfq-intake';
+import { QuotePreviewPage } from '@/pages/quote-preview';
 import {
   Route,
   Switch,
@@ -29,7 +31,9 @@ function Router() {
           <Route path="/rfq-inbox" component={RfqInboxPage} />
           <Route path="/rfqs/new" component={ManualRfqIntakePage} />
           <Route path="/rfqs/:rfqId" component={RfqDetailPageV2} />
+          <Route path="/quotes/:quoteId" component={QuotePreviewPage} />
           <Route path="/email-inbox" component={EmailInboxPageV2} />
+          <Route path="/email-outbox" component={EmailOutboxPage} />
           <Route path="/emails/:emailId" component={EmailDetailPage} />
           <Route path="/ai-review" component={AiReviewPageV2} />
           <Route path="/ai-review/:rfqId" component={AiReviewDetailPage} />

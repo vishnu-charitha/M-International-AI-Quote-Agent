@@ -144,8 +144,8 @@ export const emails: Email[] = [
   },
   {
     id: 4,
-    sender: "Meridian Charter",
-    senderEmail: "ops@meridiancharter.com",
+    sender: "Olivia Grant <olivia.grant@meridiancharter.com>",
+    senderEmail: "olivia.grant@meridiancharter.com",
     subject: "VHF Transceiver Availability",
     receivedAt: "2 days ago",
     aiStatus: "ANALYZED",

@@ -5,10 +5,9 @@
  * M International AI Quote Agent operations API
  * OpenAPI spec version: 0.1.0
  */
-import type { RfqStatus } from './rfqStatus';
 
-export interface UpdateRfqInput {
-  customerPhone?: string;
-  customerAddress?: string;
-  status?: RfqStatus;
+export interface RequestInfoResponse {
+  success: boolean;
+  status: string;
+  developmentMode?: boolean;
 }
