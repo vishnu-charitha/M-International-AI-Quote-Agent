@@ -946,10 +946,12 @@ router.get("/rag/health", async (_req, res) => {
         .from(emailOutboxTable)
         .orderBy(desc(emailOutboxTable.createdAt));
         
+      console.log("Email outbox rows:", rows);
+
       const response = GetEmailOutboxResponse.parse({
         emails: rows.map((r: any) => ({
           id: r.id,
-          rfqId: r.rfqId ?? null,
+          rfqId: r.rfqId ?? r.rfq_id ?? null,
           recipient: r.recipient,
           subject: r.subject,
           bodyText: r.bodyText,
