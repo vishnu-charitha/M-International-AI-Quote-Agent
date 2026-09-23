@@ -11,6 +11,10 @@ import { EmailOutboxPage } from '@/pages/email-outbox';
 import { EmailConfigurationPage } from '@/pages/email-configuration';
 import { ManualRfqIntakePage } from '@/pages/rfq-intake';
 import { QuotePreviewPage } from '@/pages/quote-preview';
+import { OrdersPage, OrderDetailPage } from '@/pages/orders';
+import { InvoicesPage, InvoiceDetailPage } from '@/pages/invoices';
+import { FulfillmentsPage, FulfillmentDetailPage } from '@/pages/fulfillments';
+import { ShippingPage, ShippingDetailPage } from '@/pages/shipping';
 import {
   Route,
   Switch,
@@ -41,7 +45,15 @@ function Router() {
           <Route path="/settings" component={SettingsPage} />
           <Route path="/email-configuration" component={EmailConfigurationPage} />
           <Route path="/parts-exchange" component={PartsExchangePage} />
-          {Object.keys(placeholders).map((path) => <Route key={path} path={path}><PlaceholderPage path={path} /></Route>)}
+          <Route path="/orders" component={OrdersPage} />
+          <Route path="/orders/:orderId" component={OrderDetailPage} />
+          <Route path="/invoices" component={InvoicesPage} />
+          <Route path="/invoices/:invoiceId" component={InvoiceDetailPage} />
+          <Route path="/fulfillment" component={FulfillmentsPage} />
+          <Route path="/fulfillment/:fulfillmentId" component={FulfillmentDetailPage} />
+          <Route path="/shipping" component={ShippingPage} />
+          <Route path="/shipping/:fulfillmentId" component={ShippingDetailPage} />
+          {Object.keys(placeholders).filter(p => p !== '/orders' && p !== '/invoices' && p !== '/fulfillment' && p !== '/shipping').map((path) => <Route key={path} path={path}><PlaceholderPage path={path} /></Route>)}
           <Route component={NotFound} />
         </Switch>
       </RoutedErrorBoundary>

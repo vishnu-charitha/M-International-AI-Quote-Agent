@@ -36,6 +36,7 @@ import {
   useAddRfqReview,
   useRequestRfqInfo,
   useUpdateCustomerInfo,
+  useProcessCustomerReply,
 } from '@workspace/api-client-react';
 import type { EmailDetail } from '@workspace/api-client-react';
 import { useToast } from '@/hooks/use-toast';
@@ -266,6 +267,30 @@ export function RfqDetailPageV2() {
   const [editCustomerForm, setEditCustomerForm] = useState({ name: '', company: '', email: '', phone: '', address: '' });
   
   const updateCustomerInfo = useUpdateCustomerInfo();
+  const [showSimulateReplyModal, setShowSimulateReplyModal] = useState(false);
+  const [simulateReplyForm, setSimulateReplyForm] = useState({ bodyText: '' });
+  const processCustomerReply = useProcessCustomerReply();
+
+  const handleSimulateReplySubmit = async () => {
+    try {
+      const response = await processCustomerReply.mutateAsync({
+        rfqId: id,
+        data: {
+          bodyText: simulateReplyForm.bodyText
+        }
+      });
+      setShowSimulateReplyModal(false);
+      queryClient.invalidateQueries({ queryKey: getGetRfqQueryKey(id) });
+      queryClient.invalidateQueries({ queryKey: getListRfqsQueryKey() });
+      toast({ 
+        title: response.validation.isValid ? 'Success' : 'Missing Information', 
+        description: `Extracted data. RFQ is now ${response.status}`,
+      });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error?.message || 'Failed to process reply.', variant: 'destructive' });
+    }
+  };
+
 
   useEffect(() => {
     if (rfq.data && (rfq.data as any).customerPhone) {
@@ -390,15 +415,29 @@ export function RfqDetailPageV2() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="eyebrow">Customer Information</div>
-            {isNeedsInformation && (
-              <button 
-                onClick={handleEditCustomerClick}
-                className="flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-700 font-medium bg-amber-50 px-2 py-0.5 rounded transition-colors"
-              >
-                <Pencil size={12} />
-                Edit
-              </button>
-            )}
+                          {isNeedsInformation && (
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleEditCustomerClick}
+                    className="flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-700 font-medium bg-amber-50 px-2 py-0.5 rounded transition-colors"
+                  >
+                    <Pencil size={12} />
+                    Edit
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setSimulateReplyForm({
+                        bodyText: "Hi M International,\nMy phone number is +91 9876543210.\nOur address is 25 MG Road, Hyderabad, Telangana 500001.\nRegards,\nOlivia Grant"
+                      });
+                      setShowSimulateReplyModal(true);
+                    }}
+                    className="flex items-center gap-1 text-[10px] text-[hsl(var(--primary))] hover:text-[hsl(var(--primary-foreground))] font-medium bg-[hsl(var(--primary))] bg-opacity-10 hover:bg-[hsl(var(--primary))] px-2 py-0.5 rounded transition-colors"
+                  >
+                    Simulate Reply
+                  </button>
+                </div>
+              )}
+
           </div>
           <ul className="space-y-2 text-[12px]">
             <li className="flex items-center gap-2">
@@ -779,3 +818,5 @@ export function SettingsPage() {
 function IntegrationCard({ icon, title, description, connected, configured, development, detail, action }: { icon: ReactNode; title: string; description: string; connected: boolean; configured: boolean; development: boolean; detail?: string | null; action: ReactNode }) {
   return <div data-testid={`card-integration-${title.toLowerCase().replace(/\s+/g, '-')}`} className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="mb-5 flex items-start justify-between gap-4"><div className="grid h-10 w-10 place-items-center rounded-lg bg-[hsl(var(--muted))] text-[hsl(var(--primary))]">{icon}</div><span className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[9px] font-bold uppercase ${connected ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-700'}`}>{connected ? 'Connected' : 'Not connected'}</span></div><h2 className="text-[15px] font-extrabold">{title}</h2><p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">{description}</p><div className="mt-5 space-y-2 border-t border-[hsl(var(--border))] pt-4"><div className="flex items-center gap-2 text-[10px]"><span className={`h-1.5 w-1.5 rounded-full ${configured ? 'bg-emerald-500' : 'bg-amber-500'}`} /> Configuration {configured ? 'available' : 'required'}</div>{development && <div data-testid={`status-development-${title.toLowerCase().replace(/\s+/g, '-')}`} className="flex items-center gap-2 text-[10px] text-[hsl(var(--accent-foreground))]"><AlertCircle size={12} /> Development mode</div>}<div className="text-[10px] leading-5 text-[hsl(var(--muted-foreground))]">{detail || 'No connection message returned.'}</div></div><div className="mt-6">{action}</div></div>;
 }
+
+

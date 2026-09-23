@@ -1,698 +1,1038 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
   description: M International AI Quote Agent operations API
 servers:
-  - url: /api
-    description: Base API path
+- url: /api
+  description: Base API path
 tags:
-  - name: health
-    description: Health operations
-  - name: operations
-    description: RFQ and operations monitoring
-  - name: ingestion
-    description: Email ingestion and AI processing
-  - name: integrations
-    description: External service connections
+- name: health
+  description: Health operations
+- name: operations
+  description: RFQ and operations monitoring
+- name: ingestion
+  description: Email ingestion and AI processing
+- name: integrations
+  description: External service connections
+- name: invoices
+  description: Invoice and billing operations
+- name: fulfillments
+  description: Fulfillment and shipping operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
-      tags: [health]
+      tags:
+      - health
       summary: Health check
       description: Returns server health status
       responses:
-        "200":
+        '200':
           description: Healthy
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HealthStatus"
+                $ref: '#/components/schemas/HealthStatus'
   /dashboard:
     get:
       operationId: getDashboard
-      tags: [operations]
+      tags:
+      - operations
       summary: Get operations dashboard
       responses:
-        "200":
+        '200':
           description: Dashboard summary and activity
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Dashboard"
+                $ref: '#/components/schemas/Dashboard'
   /rfqs:
     get:
       operationId: listRfqs
-      tags: [operations]
+      tags:
+      - operations
       summary: List RFQs
       parameters:
-        - $ref: "#/components/parameters/Search"
-        - $ref: "#/components/parameters/Source"
-        - $ref: "#/components/parameters/RequestType"
-        - $ref: "#/components/parameters/Priority"
-        - $ref: "#/components/parameters/Status"
+      - $ref: '#/components/parameters/Search'
+      - $ref: '#/components/parameters/Source'
+      - $ref: '#/components/parameters/RequestType'
+      - $ref: '#/components/parameters/Priority'
+      - $ref: '#/components/parameters/Status'
       responses:
-        "200":
+        '200':
           description: RFQ list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Rfq"
+                  $ref: '#/components/schemas/Rfq'
     post:
       operationId: createRfq
-      tags: [operations]
+      tags:
+      - operations
       summary: Create an RFQ manually
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateRfqInput"
+              $ref: '#/components/schemas/CreateRfqInput'
       responses:
-        "200":
+        '200':
           description: Created RFQ details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RfqDetail"
+                $ref: '#/components/schemas/RfqDetail'
   /rfqs/analyze:
     post:
       operationId: analyzeRfq
-      tags: [operations]
+      tags:
+      - operations
       summary: Analyze manual RFQ text
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AnalyzeRfqInput"
+              $ref: '#/components/schemas/AnalyzeRfqInput'
       responses:
-        "200":
+        '200':
           description: Analyzed RFQ data
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AnalyzeRfqResult"
+                $ref: '#/components/schemas/AnalyzeRfqResult'
   /rfqs/{rfqId}:
     get:
       operationId: getRfq
-      tags: [operations]
+      tags:
+      - operations
       summary: Get an RFQ
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       responses:
-        "200":
+        '200':
           description: RFQ details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RfqDetail"
-        "404":
+                $ref: '#/components/schemas/RfqDetail'
+        '404':
           description: RFQ not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
     patch:
       operationId: updateRfq
-      tags: [operations]
+      tags:
+      - operations
       summary: Update an RFQ (e.g. to provide missing information)
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateRfqInput"
+              $ref: '#/components/schemas/UpdateRfqInput'
       responses:
-        "200":
+        '200':
           description: Updated RFQ details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RfqDetail"
-        "400":
+                $ref: '#/components/schemas/RfqDetail'
+        '400':
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
           description: RFQ not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /rfqs/{rfqId}/customer:
     patch:
       operationId: updateCustomerInfo
-      tags: [operations]
+      tags:
+      - operations
       summary: Update the customer information for an RFQ
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateCustomerInput"
+              $ref: '#/components/schemas/UpdateCustomerInput'
       responses:
-        "200":
+        '200':
           description: Customer information updated and validation re-run
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RfqDetail"
-        "400":
+                $ref: '#/components/schemas/RfqDetail'
+        '400':
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
           description: RFQ not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /rfqs/{rfqId}/reviews:
     post:
       operationId: addRfqReview
-      tags: [operations]
+      tags:
+      - operations
       summary: Add a human review action to an RFQ
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AddReviewInput"
+              $ref: '#/components/schemas/AddReviewInput'
       responses:
-        "200":
+        '200':
           description: Review action successfully recorded and RFQ updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RfqDetail"
-        "400":
+                $ref: '#/components/schemas/RfqDetail'
+        '400':
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
           description: RFQ not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /rfqs/{rfqId}/request-info:
     post:
       operationId: requestRfqInfo
-      tags: [operations]
+      tags:
+      - operations
       summary: Send an email requesting missing customer/RFQ information
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RequestInfoInput"
+              $ref: '#/components/schemas/RequestInfoInput'
       responses:
-        "200":
+        '200':
           description: Email sent and status updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RequestInfoResponse"
-        "400":
+                $ref: '#/components/schemas/RequestInfoResponse'
+        '400':
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
           description: RFQ not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /catalog/search:
     get:
       operationId: searchCatalog
-      tags: [operations]
+      tags:
+      - operations
       summary: Search the part catalog
       parameters:
-        - name: query
-          in: query
-          schema:
-            type: string
-          required: true
+      - name: query
+        in: query
+        schema:
+          type: string
+        required: true
       responses:
-        "200":
+        '200':
           description: Search results
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/CatalogItem"
+                  $ref: '#/components/schemas/CatalogItem'
   /inventory/{partNumber}:
     get:
       operationId: getInventory
-      tags: [operations]
+      tags:
+      - operations
       summary: Get inventory status for a part
       parameters:
-        - name: partNumber
-          in: path
-          required: true
-          schema:
-            type: string
+      - name: partNumber
+        in: path
+        required: true
+        schema:
+          type: string
       responses:
-        "200":
+        '200':
           description: Inventory status
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InventoryStatus"
+                $ref: '#/components/schemas/InventoryStatus'
   /pricing/calculate:
     post:
       operationId: calculatePricing
-      tags: [operations]
+      tags:
+      - operations
       summary: Calculate pricing for an RFQ item
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PricingRequest"
+              $ref: '#/components/schemas/PricingRequest'
       responses:
-        "200":
+        '200':
           description: Calculated pricing
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PricingResponse"
+                $ref: '#/components/schemas/PricingResponse'
   /email-outbox:
     get:
       operationId: getEmailOutbox
-      tags: [operations]
+      tags:
+      - operations
       summary: List development mode email outbox records
       responses:
-        "200":
+        '200':
           description: A list of email outbox records ordered newest first
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ListEmailOutboxResponse"
+                $ref: '#/components/schemas/ListEmailOutboxResponse'
   /emails:
     get:
       operationId: listEmails
-      tags: [operations]
+      tags:
+      - operations
       summary: List ingested emails
       responses:
-        "200":
+        '200':
           description: Email list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Email"
+                  $ref: '#/components/schemas/Email'
   /emails/{emailId}:
     get:
       operationId: getEmail
-      tags: [ingestion]
+      tags:
+      - ingestion
       summary: Get an email and its processing details
       parameters:
-        - $ref: "#/components/parameters/EmailId"
+      - $ref: '#/components/parameters/EmailId'
       responses:
-        "200":
+        '200':
           description: Email detail
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EmailDetail"
-        "404":
+                $ref: '#/components/schemas/EmailDetail'
+        '404':
           description: Email not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /emails/sync:
     post:
       operationId: syncEmails
-      tags: [ingestion]
+      tags:
+      - ingestion
       summary: Synchronize inbox email
       responses:
-        "200":
+        '200':
           description: Synchronization result
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EmailSyncResult"
+                $ref: '#/components/schemas/EmailSyncResult'
   /emails/demo/seed:
     post:
       operationId: seedDemoEmails
-      tags: [ingestion]
+      tags:
+      - ingestion
       summary: Seed demo emails
       responses:
-        "200":
+        '200':
           description: Seeding result
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EmailSyncResult"
+                $ref: '#/components/schemas/EmailSyncResult'
   /emails/{emailId}/process:
     post:
       operationId: processEmail
-      tags: [ingestion]
+      tags:
+      - ingestion
       summary: Process an email through the RFQ analysis pipeline
       parameters:
-        - $ref: "#/components/parameters/EmailId"
+      - $ref: '#/components/parameters/EmailId'
       responses:
-        "200":
+        '200':
           description: Processing result
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EmailProcessResult"
-        "404":
+                $ref: '#/components/schemas/EmailProcessResult'
+        '404':
           description: Email not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /email-attachments/{attachmentId}:
     get:
       operationId: getEmailAttachment
-      tags: [ingestion]
+      tags:
+      - ingestion
       summary: Get attachment metadata
       parameters:
-        - $ref: "#/components/parameters/AttachmentId"
+      - $ref: '#/components/parameters/AttachmentId'
       responses:
-        "200":
+        '200':
           description: Attachment metadata
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EmailAttachment"
-        "404":
+                $ref: '#/components/schemas/EmailAttachment'
+        '404':
           description: Attachment not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /ai-review:
     get:
       operationId: listAiReviews
-      tags: [operations]
+      tags:
+      - operations
       summary: List requests needing human review
       responses:
-        "200":
+        '200':
           description: AI review queue
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/AiReview"
+                  $ref: '#/components/schemas/AiReview'
   /ai-review/{rfqId}:
     get:
       operationId: getAiReview
-      tags: [ingestion]
+      tags:
+      - ingestion
       summary: Get AI review detail
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       responses:
-        "200":
+        '200':
           description: AI review detail
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AiReviewDetail"
-        "404":
+                $ref: '#/components/schemas/AiReviewDetail'
+        '404':
           description: Review item not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /ai-review/{rfqId}/approve:
     post:
       operationId: approveAiReview
-      tags: [ingestion]
+      tags:
+      - ingestion
       summary: Approve an AI result
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       responses:
-        "200":
+        '200':
           description: Updated AI review
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AiReviewDetail"
+                $ref: '#/components/schemas/AiReviewDetail'
   /ai-review/{rfqId}/reclassify:
     post:
       operationId: reclassifyAiReview
-      tags: [ingestion]
+      tags:
+      - ingestion
       summary: Change the request classification
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ReclassifyReviewInput"
+              $ref: '#/components/schemas/ReclassifyReviewInput'
       responses:
-        "200":
+        '200':
           description: Updated AI review
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AiReviewDetail"
+                $ref: '#/components/schemas/AiReviewDetail'
   /ai-review/{rfqId}/reject:
     post:
       operationId: rejectAiReview
-      tags: [ingestion]
+      tags:
+      - ingestion
       summary: Reject an AI result as non-RFQ
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       responses:
-        "200":
+        '200':
           description: Updated AI review
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AiReviewDetail"
+                $ref: '#/components/schemas/AiReviewDetail'
   /ai-review/{rfqId}/update:
     post:
       operationId: updateAiReview
-      tags: [ingestion]
+      tags:
+      - ingestion
       summary: Edit extracted RFQ details
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateReviewInput"
+              $ref: '#/components/schemas/UpdateReviewInput'
       responses:
-        "200":
+        '200':
           description: Updated AI review
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AiReviewDetail"
+                $ref: '#/components/schemas/AiReviewDetail'
   /ai-review/{rfqId}/action:
     post:
       operationId: reviewAi
-      tags: [operations]
+      tags:
+      - operations
       summary: Apply a review queue action
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AiReviewAction"
+              $ref: '#/components/schemas/AiReviewAction'
       responses:
-        "200":
+        '200':
           description: Updated review item
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AiReview"
-        "404":
+                $ref: '#/components/schemas/AiReview'
+        '404':
           description: RFQ not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /integrations/microsoft/status:
     get:
       operationId: getMicrosoftStatus
-      tags: [integrations]
+      tags:
+      - integrations
       summary: Get Microsoft 365 connection status
       responses:
-        "200":
+        '200':
           description: Microsoft 365 connection status
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MicrosoftIntegrationStatus"
+                $ref: '#/components/schemas/MicrosoftIntegrationStatus'
   /integrations/microsoft/connect:
     get:
       operationId: getMicrosoftConnect
-      tags: [integrations]
+      tags:
+      - integrations
       summary: Start Microsoft 365 connection
       responses:
-        "200":
+        '200':
           description: Connection status or setup guidance
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MicrosoftIntegrationStatus"
+                $ref: '#/components/schemas/MicrosoftIntegrationStatus'
   /integrations/microsoft/callback:
     get:
       operationId: microsoftCallback
-      tags: [integrations]
+      tags:
+      - integrations
       summary: Complete Microsoft 365 connection callback
       responses:
-        "200":
+        '200':
           description: Connection status
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MicrosoftIntegrationStatus"
+                $ref: '#/components/schemas/MicrosoftIntegrationStatus'
   /integrations/microsoft/config:
     post:
       operationId: updateMicrosoftConfig
-      tags: [integrations]
+      tags:
+      - integrations
       summary: Update Microsoft 365 configuration
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateMicrosoftConfigInput"
+              $ref: '#/components/schemas/UpdateMicrosoftConfigInput'
       responses:
-        "200":
+        '200':
           description: Updated configuration status
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MicrosoftIntegrationStatus"
+                $ref: '#/components/schemas/MicrosoftIntegrationStatus'
   /integrations/microsoft/disconnect:
     post:
       operationId: disconnectMicrosoft
-      tags: [integrations]
+      tags:
+      - integrations
       summary: Disconnect Microsoft 365
       responses:
-        "200":
+        '200':
           description: Disconnection result
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/MicrosoftIntegrationStatus"
+                $ref: '#/components/schemas/MicrosoftIntegrationStatus'
   /rfqs/{rfqId}/quotes:
     get:
       operationId: getQuotesForRfq
-      tags: [operations]
+      tags:
+      - operations
       summary: Get all quotes for an RFQ
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       responses:
-        "200":
+        '200':
           description: List of quotes
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Quote"
+                  $ref: '#/components/schemas/Quote'
     post:
       operationId: generateQuote
-      tags: [operations]
+      tags:
+      - operations
       summary: Generate a draft quote for an RFQ
       parameters:
-        - $ref: "#/components/parameters/RfqId"
+      - $ref: '#/components/parameters/RfqId'
       responses:
-        "200":
+        '200':
           description: Generated quote
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Quote"
+                $ref: '#/components/schemas/Quote'
   /quotes/{quoteId}:
     get:
       operationId: getQuote
-      tags: [operations]
+      tags:
+      - operations
       summary: Get quote details
       parameters:
-        - $ref: "#/components/parameters/QuoteId"
+      - $ref: '#/components/parameters/QuoteId'
       responses:
-        "200":
+        '200':
           description: Quote details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Quote"
-        "404":
+                $ref: '#/components/schemas/Quote'
+        '404':
           description: Quote not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /quotes/{quoteId}/status:
     patch:
       operationId: updateQuoteStatus
-      tags: [operations]
+      tags:
+      - operations
       summary: Update quote status
       parameters:
-        - $ref: "#/components/parameters/QuoteId"
+      - $ref: '#/components/parameters/QuoteId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateQuoteStatusInput"
+              $ref: '#/components/schemas/UpdateQuoteStatusInput'
       responses:
-        "200":
+        '200':
           description: Updated quote
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Quote"
+                $ref: '#/components/schemas/Quote'
   /quotes/{quoteId}/send:
     post:
       operationId: sendQuote
-      tags: [operations]
+      tags:
+      - operations
       summary: Send the quote to the customer via email
       parameters:
-        - $ref: "#/components/parameters/QuoteId"
+      - $ref: '#/components/parameters/QuoteId'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/SendQuoteInput"
+              $ref: '#/components/schemas/SendQuoteInput'
       responses:
-        "200":
+        '200':
           description: Quote sent successfully and marked as SENT
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Quote"
+                $ref: '#/components/schemas/Quote'
+  /quotes/{quoteId}/response:
+    post:
+      operationId: processQuoteResponse
+      tags:
+      - operations
+      summary: Process customer response for a quote
+      parameters:
+      - $ref: '#/components/parameters/QuoteId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessQuoteResponseInput'
+      responses:
+        '200':
+          description: Response processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessQuoteResponseOutput'
+  /rfqs/{rfqId}/customer-reply:
+    post:
+      operationId: processCustomerReply
+      tags:
+      - operations
+      summary: Process a simulated customer reply for an RFQ
+      parameters:
+      - $ref: '#/components/parameters/RfqId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerReplyInput'
+      responses:
+        '200':
+          description: Customer reply processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerReplyResponse'
+  /orders:
+    get:
+      operationId: listOrders
+      tags:
+      - orders
+      summary: Get all orders
+      responses:
+        '200':
+          description: A list of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      tags:
+      - orders
+      summary: Get order by ID
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                ? ''
+                : '#/components/schemas/Order'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                ? ''
+                : '#/components/schemas/ErrorResponse'
+  /invoices:
+    get:
+      operationId: listInvoices
+      tags:
+      - invoices
+      summary: List all invoices
+      responses:
+        '200':
+          description: A list of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invoice'
+  /invoices/{invoiceId}:
+    get:
+      operationId: getInvoice
+      tags:
+      - invoices
+      summary: Get invoice details
+      parameters:
+      - name: invoiceId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        '404':
+          description: Invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /orders/{orderId}/invoices:
+    post:
+      operationId: createInvoice
+      tags:
+      - invoices
+      summary: Create an invoice for an order
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Created invoice
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        '400':
+          description: Validation or creation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /invoices/{invoiceId}/issue:
+    post:
+      operationId: issueInvoice
+      tags:
+      - invoices
+      summary: Issue a draft invoice
+      parameters:
+      - name: invoiceId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Issued invoice
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+        '400':
+          description: Validation or transition error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /invoices/{invoiceId}/payment:
+    post:
+      operationId: processInvoicePayment
+      tags:
+      - invoices
+      summary: Simulate payment for an invoice
+      parameters:
+      - name: invoiceId
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessInvoicePaymentInput'
+      responses:
+        '200':
+          description: Payment processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+  /fulfillments:
+    get:
+      operationId: listFulfillments
+      tags:
+      - fulfillments
+      summary: Get all fulfillments
+      responses:
+        '200':
+          description: A list of fulfillments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Fulfillment'
+  /fulfillments/{fulfillmentId}:
+    get:
+      operationId: getFulfillment
+      tags:
+      - fulfillments
+      summary: Get fulfillment by ID
+      parameters:
+      - $ref: '#/components/parameters/FulfillmentId'
+      responses:
+        '200':
+          description: Fulfillment detail
+          content:
+            application/json:
+              schema:
+                ? ''
+                : '#/components/schemas/Fulfillment'
+        '404':
+          description: Fulfillment not found
+          content:
+            application/json:
+              schema:
+                ? ''
+                : '#/components/schemas/ErrorResponse'
+  /fulfillments/{fulfillmentId}/status:
+    post:
+      operationId: updateFulfillmentStatus
+      tags:
+      - fulfillments
+      summary: Update fulfillment status
+      parameters:
+      - $ref: '#/components/parameters/FulfillmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              ? ''
+              : '#/components/schemas/UpdateFulfillmentStatusInput'
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                ? ''
+                : '#/components/schemas/Fulfillment'
+        '400':
+          description: Invalid transition or missing info
+          content:
+            application/json:
+              schema:
+                ? ''
+                : '#/components/schemas/ErrorResponse'
+  /orders/{orderId}/fulfillment:
+    post:
+      operationId: createFulfillment
+      tags:
+      - fulfillments
+      summary: Create a fulfillment for an order
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Created fulfillment
+          content:
+            application/json:
+              schema:
+                ? ''
+                : '#/components/schemas/Fulfillment'
+        '400':
+          description: Order not paid or fulfillment already exists
+          content:
+            application/json:
+              schema:
+                ? ''
+                : '#/components/schemas/ErrorResponse'
 components:
   parameters:
     QuoteId:
@@ -730,29 +1070,40 @@ components:
       in: query
       required: false
       schema:
-        $ref: "#/components/schemas/RfqSource"
+        $ref: '#/components/schemas/RfqSource'
     RequestType:
       name: requestType
       in: query
       required: false
       schema:
-        $ref: "#/components/schemas/RequestType"
+        $ref: '#/components/schemas/RequestType'
     Priority:
       name: priority
       in: query
       required: false
       schema:
-        $ref: "#/components/schemas/Priority"
+        $ref: '#/components/schemas/Priority'
     Status:
       name: status
       in: query
       required: false
       schema:
-        $ref: "#/components/schemas/RfqStatus"
+        $ref: '#/components/schemas/RfqStatus'
+    FulfillmentId:
+      name: fulfillmentId
+      in: path
+      required: true
+      schema:
+        type: integer
   schemas:
     QuoteStatus:
       type: string
-      enum: [DRAFT, APPROVED, REJECTED, SENT]
+      enum:
+      - DRAFT
+      - APPROVED
+      - REJECTED
+      - SENT
+      - ACCEPTED
     Quote:
       type: object
       properties:
@@ -795,29 +1146,39 @@ components:
         validity:
           type: string
         status:
-          $ref: "#/components/schemas/QuoteStatus"
+          $ref: '#/components/schemas/QuoteStatus'
         createdAt:
           type: string
         updatedAt:
           type: string
-      required: [id, quoteNumber, rfqId, partNumber, quantity, status, createdAt, updatedAt]
+      required:
+      - id
+      - quoteNumber
+      - rfqId
+      - partNumber
+      - quantity
+      - status
+      - createdAt
+      - updatedAt
     UpdateQuoteStatusInput:
       type: object
       properties:
         status:
-          $ref: "#/components/schemas/QuoteStatus"
-      required: [status]
+          $ref: '#/components/schemas/QuoteStatus'
+      required:
+      - status
     SendQuoteInput:
       type: object
       properties:
         pdfBase64:
           type: string
           description: Base64 encoded PDF string
-      required: [pdfBase64]
+      required:
+      - pdfBase64
     CatalogItem:
       type: object
       required:
-        - partNumber
+      - partNumber
       properties:
         partNumber:
           type: string
@@ -850,8 +1211,8 @@ components:
     InventoryStatus:
       type: object
       required:
-        - partNumber
-        - availableQty
+      - partNumber
+      - availableQty
       properties:
         partNumber:
           type: string
@@ -871,11 +1232,11 @@ components:
     PricingRequest:
       type: object
       required:
-        - partNumber
-        - quantity
-        - basePrice
-        - currency
-        - condition
+      - partNumber
+      - quantity
+      - basePrice
+      - currency
+      - condition
       properties:
         partNumber:
           type: string
@@ -890,13 +1251,13 @@ components:
     PricingResponse:
       type: object
       required:
-        - unitPrice
-        - subtotal
-        - discount
-        - tax
-        - shippingHandling
-        - grandTotal
-        - currency
+      - unitPrice
+      - subtotal
+      - discount
+      - tax
+      - shippingHandling
+      - grandTotal
+      - currency
       properties:
         unitPrice:
           type: number
@@ -918,10 +1279,16 @@ components:
         status:
           type: string
       required:
-        - status
+      - status
     EmailOutboxRecord:
       type: object
-      required: [id, recipient, subject, bodyText, status, createdAt]
+      required:
+      - id
+      - recipient
+      - subject
+      - bodyText
+      - status
+      - createdAt
       properties:
         id:
           type: integer
@@ -939,34 +1306,62 @@ components:
         createdAt:
           type: string
           format: date-time
-
     ListEmailOutboxResponse:
       type: object
-      required: [emails]
+      required:
+      - emails
       properties:
         emails:
           type: array
           items:
-            $ref: "#/components/schemas/EmailOutboxRecord"
-
+            $ref: '#/components/schemas/EmailOutboxRecord'
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-      required: [error]
+      required:
+      - error
     RfqSource:
       type: string
-      enum: [EMAIL, WEBSITE, PHONE, PORTAL]
+      enum:
+      - EMAIL
+      - WEBSITE
+      - PHONE
+      - PORTAL
     RequestType:
       type: string
-      enum: [PARTS_EXCHANGE, NEW_PART_PURCHASE, REPAIR, OVERHAUL, INSPECTION, UNKNOWN]
+      enum:
+      - PARTS_EXCHANGE
+      - NEW_PART_PURCHASE
+      - REPAIR
+      - OVERHAUL
+      - INSPECTION
+      - UNKNOWN
     RfqStatus:
       type: string
-      enum: [NEW, ANALYZING, UNDER_REVIEW, PROCESSING, NEEDS_HUMAN_REVIEW, COMPLETED, CLOSED, UNDERSTANDING, VALIDATION_REQUIRED, READY_FOR_REVIEW, APPROVED, REJECTED, NEEDS_INFORMATION, QUOTED]
+      enum:
+      - NEW
+      - ANALYZING
+      - UNDER_REVIEW
+      - PROCESSING
+      - NEEDS_HUMAN_REVIEW
+      - COMPLETED
+      - CLOSED
+      - UNDERSTANDING
+      - VALIDATION_REQUIRED
+      - READY_FOR_REVIEW
+      - APPROVED
+      - REJECTED
+      - NEEDS_INFORMATION
+      - QUOTED
     Priority:
       type: string
-      enum: [LOW, MEDIUM, HIGH, URGENT]
+      enum:
+      - LOW
+      - MEDIUM
+      - HIGH
+      - URGENT
     SummaryMetric:
       type: object
       properties:
@@ -978,8 +1373,19 @@ components:
           type: number
         tone:
           type: string
-          enum: [blue, amber, violet, orange, green, teal, slate]
-      required: [label, value, trend, tone]
+          enum:
+          - blue
+          - amber
+          - violet
+          - orange
+          - green
+          - teal
+          - slate
+      required:
+      - label
+      - value
+      - trend
+      - tone
     Customer:
       type: object
       properties:
@@ -995,7 +1401,11 @@ components:
           type: string
         address:
           type: string
-      required: [id, name, company, email]
+      required:
+      - id
+      - name
+      - company
+      - email
     ValidationStatus:
       type: object
       properties:
@@ -1009,7 +1419,10 @@ components:
           type: array
           items:
             type: string
-      required: [isValid, missingCustomerFields, missingRfqFields]
+      required:
+      - isValid
+      - missingCustomerFields
+      - missingRfqFields
     Rfq:
       type: object
       properties:
@@ -1024,87 +1437,105 @@ components:
         partNumber:
           type: string
         source:
-          $ref: "#/components/schemas/RfqSource"
+          $ref: '#/components/schemas/RfqSource'
         requestType:
-          $ref: "#/components/schemas/RequestType"
+          $ref: '#/components/schemas/RequestType'
         confidence:
           type: integer
         priority:
-          $ref: "#/components/schemas/Priority"
+          $ref: '#/components/schemas/Priority'
         status:
-          $ref: "#/components/schemas/RfqStatus"
+          $ref: '#/components/schemas/RfqStatus'
         createdAt:
           type: string
         age:
           type: string
-      required: [id, rfqNumber, customer, customerCompany, partNumber, source, requestType, confidence, priority, status, createdAt, age]
+      required:
+      - id
+      - rfqNumber
+      - customer
+      - customerCompany
+      - partNumber
+      - source
+      - requestType
+      - confidence
+      - priority
+      - status
+      - createdAt
+      - age
     RfqDetail:
       allOf:
-        - $ref: "#/components/schemas/Rfq"
-        - type: object
-          properties:
-            description:
-              type: string
-            customerId:
-              type: integer
-            customerEmail:
-              type: string
-              nullable: true
-            customerPhone:
-              type: string
-              nullable: true
-            customerAddress:
-              type: string
-              nullable: true
-            validation:
-              $ref: "#/components/schemas/ValidationStatus"
-            quantity:
-              type: integer
-            aircraft:
-              type: string
-            notes:
-              type: string
-            emailSubject:
-              type: string
-            sender:
-              type: string
-            sourceEmail:
-              oneOf:
-                - $ref: "#/components/schemas/EmailDetail"
-                - type: "null"
-            analysis:
-              oneOf:
-                - $ref: "#/components/schemas/AiAnalysis"
-                - type: "null"
-            reviewHistory:
-              type: array
-              items:
-                $ref: "#/components/schemas/ReviewHistoryEntry"
-            catalog:
-              $ref: "#/components/schemas/CatalogItem"
-            inventory:
-              $ref: "#/components/schemas/InventoryStatus"
-            pricing:
-              $ref: "#/components/schemas/PricingResponse"
-            compliance:
+      - $ref: '#/components/schemas/Rfq'
+      - type: object
+        properties:
+          description:
+            type: string
+          customerId:
+            type: integer
+          customerEmail:
+            type: string
+            nullable: true
+          customerPhone:
+            type: string
+            nullable: true
+          customerAddress:
+            type: string
+            nullable: true
+          validation:
+            $ref: '#/components/schemas/ValidationStatus'
+          quantity:
+            type: integer
+          aircraft:
+            type: string
+          notes:
+            type: string
+          emailSubject:
+            type: string
+          sender:
+            type: string
+          sourceEmail:
+            oneOf:
+            - $ref: '#/components/schemas/EmailDetail'
+            - type: 'null'
+          analysis:
+            oneOf:
+            - $ref: '#/components/schemas/AiAnalysis'
+            - type: 'null'
+          reviewHistory:
+            type: array
+            items:
+              $ref: '#/components/schemas/ReviewHistoryEntry'
+          catalog:
+            $ref: '#/components/schemas/CatalogItem'
+          inventory:
+            $ref: '#/components/schemas/InventoryStatus'
+          pricing:
+            $ref: '#/components/schemas/PricingResponse'
+          compliance:
+            type: object
+            properties:
+              status:
+                type: string
+              reasons:
+                type: array
+                items:
+                  type: string
+          ragContext:
+            type: array
+            items:
               type: object
               properties:
-                status:
+                content:
                   type: string
-                reasons:
-                  type: array
-                  items:
-                    type: string
-            ragContext:
-              type: array
-              items:
-                type: object
-                properties:
-                  content:
-                    type: string
-                  metadata:
-                    type: object
-          required: [description, quantity, aircraft, notes, emailSubject, sender]
+                metadata:
+                  type: object
+        required:
+        - description
+        - quantity
+        - aircraft
+        - notes
+        - emailSubject
+        - sender
     Email:
       type: object
       properties:
@@ -1120,24 +1551,57 @@ components:
           type: string
         aiStatus:
           type: string
-          enum: [ANALYZED, PROCESSING, FAILED]
+          enum:
+          - ANALYZED
+          - PROCESSING
+          - FAILED
         requestType:
-          $ref: "#/components/schemas/RequestType"
+          $ref: '#/components/schemas/RequestType'
         confidence:
           type: integer
         status:
           type: string
-          enum: [RFQ_CREATED, PENDING_REVIEW, IGNORED]
-      required: [id, sender, senderEmail, subject, receivedAt, aiStatus, requestType, confidence, status]
+          enum:
+          - RFQ_CREATED
+          - PENDING_REVIEW
+          - IGNORED
+      required:
+      - id
+      - sender
+      - senderEmail
+      - subject
+      - receivedAt
+      - aiStatus
+      - requestType
+      - confidence
+      - status
     EmailClassification:
       type: string
-      enum: [RFQ, NON_RFQ, SUPPLIER_RESPONSE, CUSTOMER_INQUIRY, INTERNAL, UNKNOWN]
+      enum:
+      - RFQ
+      - NON_RFQ
+      - SUPPLIER_RESPONSE
+      - CUSTOMER_INQUIRY
+      - INTERNAL
+      - UNKNOWN
     ProcessingStatus:
       type: string
-      enum: [NEW, SYNCED, PROCESSING, PROCESSED, REVIEW_REQUIRED, FAILED, IGNORED]
+      enum:
+      - NEW
+      - SYNCED
+      - PROCESSING
+      - PROCESSED
+      - REVIEW_REQUIRED
+      - FAILED
+      - IGNORED
     AttachmentProcessingStatus:
       type: string
-      enum: [PENDING, PROCESSING, EXTRACTED, FAILED, UNSUPPORTED]
+      enum:
+      - PENDING
+      - PROCESSING
+      - EXTRACTED
+      - FAILED
+      - UNSUPPORTED
     EmailAttachment:
       type: object
       properties:
@@ -1152,19 +1616,28 @@ components:
         fileSize:
           type: integer
         processingStatus:
-          $ref: "#/components/schemas/AttachmentProcessingStatus"
+          $ref: '#/components/schemas/AttachmentProcessingStatus'
         extractedText:
-          type: ["string", "null"]
-      required: [id, emailId, fileName, contentType, fileSize, processingStatus, extractedText]
+          type:
+          - string
+          - 'null'
+      required:
+      - id
+      - emailId
+      - fileName
+      - contentType
+      - fileSize
+      - processingStatus
+      - extractedText
     AiAnalysis:
       type: object
       properties:
         id:
           type: integer
         emailClassification:
-          $ref: "#/components/schemas/EmailClassification"
+          $ref: '#/components/schemas/EmailClassification'
         requestType:
-          $ref: "#/components/schemas/RequestType"
+          $ref: '#/components/schemas/RequestType'
         confidenceScore:
           type: number
         reasoningSummary:
@@ -1176,7 +1649,15 @@ components:
         extractedData:
           type: object
           additionalProperties: true
-      required: [id, emailClassification, requestType, confidenceScore, reasoningSummary, requiresHumanReview, developmentMode, extractedData]
+      required:
+      - id
+      - emailClassification
+      - requestType
+      - confidenceScore
+      - reasoningSummary
+      - requiresHumanReview
+      - developmentMode
+      - extractedData
     ReviewHistoryEntry:
       type: object
       properties:
@@ -1184,52 +1665,91 @@ components:
           type: integer
         action:
           type: string
-          enum: [APPROVED, REJECTED, RECLASSIFIED, EDITED, REQUESTED_INFO, STARTED_REVIEW]
+          enum:
+          - APPROVED
+          - REJECTED
+          - RECLASSIFIED
+          - EDITED
+          - REQUESTED_INFO
+          - STARTED_REVIEW
+          - quote_accepted
+          - quote_rejected
+          - invoice_created
+          - invoice_issued
+          - invoice_paid
+          - fulfillment_created
+          - fulfillment_picking
+          - fulfillment_packed
+          - fulfillment_shipped
+          - fulfillment_delivered
+          - fulfillment_completed
+          - fulfillment_cancelled
         previousClassification:
-          $ref: "#/components/schemas/RequestType"
+          anyOf:
+          - $ref: '#/components/schemas/RequestType'
+          - $ref: '#/components/schemas/QuoteStatus'
         newClassification:
-          $ref: "#/components/schemas/RequestType"
+          anyOf:
+          - $ref: '#/components/schemas/RequestType'
+          - $ref: '#/components/schemas/QuoteStatus'
         notes:
           type: string
         createdAt:
           type: string
-      required: [id, action, previousClassification, newClassification, notes, createdAt]
+      required:
+      - id
+      - action
+      - previousClassification
+      - newClassification
+      - notes
+      - createdAt
     EmailDetail:
       allOf:
-        - $ref: "#/components/schemas/Email"
-        - type: object
-          properties:
-            recipient:
-              type: string
-            cc:
-              type: string
-            bodyText:
-              type: string
-            bodyHtml:
-              type: string
-            processingStatus:
-              $ref: "#/components/schemas/ProcessingStatus"
-            emailClassification:
-              $ref: "#/components/schemas/EmailClassification"
-            attachments:
-              type: array
-              items:
-                $ref: "#/components/schemas/EmailAttachment"
-            analysis:
-              oneOf:
-                - $ref: "#/components/schemas/AiAnalysis"
-                - type: "null"
-            linkedRfq:
-              oneOf:
-                - $ref: "#/components/schemas/Rfq"
-                - type: "null"
-          required: [recipient, cc, bodyText, bodyHtml, processingStatus, emailClassification, attachments, analysis, linkedRfq]
+      - $ref: '#/components/schemas/Email'
+      - type: object
+        properties:
+          recipient:
+            type: string
+          cc:
+            type: string
+          bodyText:
+            type: string
+          bodyHtml:
+            type: string
+          processingStatus:
+            $ref: '#/components/schemas/ProcessingStatus'
+          emailClassification:
+            $ref: '#/components/schemas/EmailClassification'
+          attachments:
+            type: array
+            items:
+              $ref: '#/components/schemas/EmailAttachment'
+          analysis:
+            oneOf:
+            - $ref: '#/components/schemas/AiAnalysis'
+            - type: 'null'
+          linkedRfq:
+            oneOf:
+            - $ref: '#/components/schemas/Rfq'
+            - type: 'null'
+        required:
+        - recipient
+        - cc
+        - bodyText
+        - bodyHtml
+        - processingStatus
+        - emailClassification
+        - attachments
+        - analysis
+        - linkedRfq
     EmailSyncResult:
       type: object
       properties:
         mode:
           type: string
-          enum: [MICROSOFT_GRAPH, DEVELOPMENT]
+          enum:
+          - MICROSOFT_GRAPH
+          - DEVELOPMENT
         synced:
           type: integer
         duplicatesSkipped:
@@ -1238,45 +1758,60 @@ components:
           type: integer
         message:
           type: string
-      required: [mode, synced, duplicatesSkipped, failed, message]
+      required:
+      - mode
+      - synced
+      - duplicatesSkipped
+      - failed
+      - message
     EmailProcessResult:
       type: object
       properties:
         email:
-          $ref: "#/components/schemas/EmailDetail"
+          $ref: '#/components/schemas/EmailDetail'
         rfqCreated:
           type: boolean
         reviewRequired:
           type: boolean
         message:
           type: string
-      required: [email, rfqCreated, reviewRequired, message]
+      required:
+      - email
+      - rfqCreated
+      - reviewRequired
+      - message
     AiReviewDetail:
       allOf:
-        - $ref: "#/components/schemas/AiReview"
-        - type: object
-          properties:
-            emailSubject:
-              type: string
-            createdAt:
-              type: string
-            originalEmail:
-              $ref: "#/components/schemas/EmailDetail"
-            analysis:
-              $ref: "#/components/schemas/AiAnalysis"
-            reviewHistory:
-              type: array
-              items:
-                $ref: "#/components/schemas/ReviewHistoryEntry"
-          required: [emailSubject, createdAt, originalEmail, analysis, reviewHistory]
+      - $ref: '#/components/schemas/AiReview'
+      - type: object
+        properties:
+          emailSubject:
+            type: string
+          createdAt:
+            type: string
+          originalEmail:
+            $ref: '#/components/schemas/EmailDetail'
+          analysis:
+            $ref: '#/components/schemas/AiAnalysis'
+          reviewHistory:
+            type: array
+            items:
+              $ref: '#/components/schemas/ReviewHistoryEntry'
+        required:
+        - emailSubject
+        - createdAt
+        - originalEmail
+        - analysis
+        - reviewHistory
     ReclassifyReviewInput:
       type: object
       properties:
         requestType:
-          $ref: "#/components/schemas/RequestType"
+          $ref: '#/components/schemas/RequestType'
         notes:
           type: string
-      required: [requestType]
+      required:
+      - requestType
     UpdateReviewInput:
       type: object
       properties:
@@ -1291,9 +1826,9 @@ components:
         condition:
           type: string
         requestType:
-          $ref: "#/components/schemas/RequestType"
+          $ref: '#/components/schemas/RequestType'
         priority:
-          $ref: "#/components/schemas/Priority"
+          $ref: '#/components/schemas/Priority'
         notes:
           type: string
       required: []
@@ -1303,9 +1838,13 @@ components:
         connected:
           type: boolean
         mailbox:
-          type: ["string", "null"]
+          type:
+          - string
+          - 'null'
         lastSync:
-          type: ["string", "null"]
+          type:
+          - string
+          - 'null'
         message:
           type: string
         configured:
@@ -1314,19 +1853,28 @@ components:
           type: boolean
         demoModeEnabled:
           type: boolean
-      required: [connected, mailbox, lastSync, message, configured, developmentMode, demoModeEnabled]
+      required:
+      - connected
+      - mailbox
+      - lastSync
+      - message
+      - configured
+      - developmentMode
+      - demoModeEnabled
     UpdateMicrosoftConfigInput:
       type: object
       properties:
         mailbox:
           type: string
-      required: [mailbox]
+      required:
+      - mailbox
     AnalyzeRfqInput:
       type: object
       properties:
         rawText:
           type: string
-      required: [rawText]
+      required:
+      - rawText
     AnalyzeRfqResult:
       type: object
       properties:
@@ -1341,7 +1889,10 @@ components:
               type: string
             phone:
               type: string
-          required: [name, company, email]
+          required:
+          - name
+          - company
+          - email
         items:
           type: array
           items:
@@ -1355,7 +1906,9 @@ components:
                 type: integer
               condition:
                 type: string
-            required: [partNumber, quantity]
+            required:
+            - partNumber
+            - quantity
         requirements:
           type: object
           properties:
@@ -1365,14 +1918,20 @@ components:
               type: string
           required: []
         requestType:
-          $ref: "#/components/schemas/RequestType"
+          $ref: '#/components/schemas/RequestType'
         confidenceScore:
           type: number
         missingInformation:
           type: array
           items:
             type: string
-      required: [customer, items, requirements, requestType, confidenceScore, missingInformation]
+      required:
+      - customer
+      - items
+      - requirements
+      - requestType
+      - confidenceScore
+      - missingInformation
     CreateRfqInput:
       type: object
       properties:
@@ -1387,7 +1946,10 @@ components:
               type: string
             phone:
               type: string
-          required: [name, company, email]
+          required:
+          - name
+          - company
+          - email
         items:
           type: array
           items:
@@ -1401,23 +1963,33 @@ components:
                 type: integer
               condition:
                 type: string
-            required: [partNumber, quantity]
+            required:
+            - partNumber
+            - quantity
         notes:
           type: string
         requestType:
-          $ref: "#/components/schemas/RequestType"
+          $ref: '#/components/schemas/RequestType'
         status:
-          $ref: "#/components/schemas/RfqStatus"
-      required: [customer, items, requestType]
+          $ref: '#/components/schemas/RfqStatus'
+      required:
+      - customer
+      - items
+      - requestType
     AddReviewInput:
       type: object
       properties:
         action:
           type: string
-          enum: [APPROVED, REJECTED, REQUESTED_INFO, STARTED_REVIEW]
+          enum:
+          - APPROVED
+          - REJECTED
+          - REQUESTED_INFO
+          - STARTED_REVIEW
         notes:
           type: string
-      required: [action]
+      required:
+      - action
     UpdateRfqInput:
       type: object
       properties:
@@ -1426,7 +1998,7 @@ components:
         customerAddress:
           type: string
         status:
-          $ref: "#/components/schemas/RfqStatus"
+          $ref: '#/components/schemas/RfqStatus'
     UpdateCustomerInput:
       type: object
       properties:
@@ -1442,7 +2014,9 @@ components:
           type: string
     RequestInfoInput:
       type: object
-      required: [subject, body]
+      required:
+      - subject
+      - body
       properties:
         subject:
           type: string
@@ -1450,7 +2024,9 @@ components:
           type: string
     RequestInfoResponse:
       type: object
-      required: [success, status]
+      required:
+      - success
+      - status
       properties:
         success:
           type: boolean
@@ -1470,24 +2046,39 @@ components:
         customer:
           type: string
         classification:
-          $ref: "#/components/schemas/RequestType"
+          $ref: '#/components/schemas/RequestType'
         confidence:
           type: integer
         reason:
           type: string
         status:
           type: string
-          enum: [NEEDS_REVIEW, APPROVED, CHANGED]
-      required: [id, rfqId, rfqNumber, customer, classification, confidence, reason, status]
+          enum:
+          - NEEDS_REVIEW
+          - APPROVED
+          - CHANGED
+      required:
+      - id
+      - rfqId
+      - rfqNumber
+      - customer
+      - classification
+      - confidence
+      - reason
+      - status
     AiReviewAction:
       type: object
       properties:
         action:
           type: string
-          enum: [REVIEW, APPROVE, CHANGE_CLASSIFICATION]
+          enum:
+          - REVIEW
+          - APPROVE
+          - CHANGE_CLASSIFICATION
         requestType:
-          $ref: "#/components/schemas/RequestType"
-      required: [action]
+          $ref: '#/components/schemas/RequestType'
+      required:
+      - action
     WorkflowStat:
       type: object
       properties:
@@ -1501,8 +2092,17 @@ components:
           type: integer
         tone:
           type: string
-          enum: [blue, teal, amber, violet]
-      required: [name, active, total, progress, tone]
+          enum:
+          - blue
+          - teal
+          - amber
+          - violet
+      required:
+      - name
+      - active
+      - total
+      - progress
+      - tone
     Activity:
       type: object
       properties:
@@ -1518,32 +2118,47 @@ components:
           type: string
         tone:
           type: string
-          enum: [blue, violet, green, amber, slate]
-      required: [id, type, title, description, time, tone]
+          enum:
+          - blue
+          - violet
+          - green
+          - amber
+          - slate
+      required:
+      - id
+      - type
+      - title
+      - description
+      - time
+      - tone
     Dashboard:
       type: object
       properties:
         metrics:
           type: array
           items:
-            $ref: "#/components/schemas/SummaryMetric"
+            $ref: '#/components/schemas/SummaryMetric'
         recentRfqs:
           type: array
           items:
-            $ref: "#/components/schemas/Rfq"
+            $ref: '#/components/schemas/Rfq'
         workflows:
           type: array
           items:
-            $ref: "#/components/schemas/WorkflowStat"
+            $ref: '#/components/schemas/WorkflowStat'
         activities:
           type: array
           items:
-            $ref: "#/components/schemas/Activity"
+            $ref: '#/components/schemas/Activity'
         emailPipeline:
           type: array
           items:
-            $ref: "#/components/schemas/PipelineMetric"
-      required: [metrics, recentRfqs, workflows, activities]
+            $ref: '#/components/schemas/PipelineMetric'
+      required:
+      - metrics
+      - recentRfqs
+      - workflows
+      - activities
     PipelineMetric:
       type: object
       properties:
@@ -1553,5 +2168,305 @@ components:
           type: integer
         detail:
           type: string
-      required: [label, value, detail]
-
+      required:
+      - label
+      - value
+      - detail
+    ProcessQuoteResponseInput:
+      type: object
+      required:
+      - action
+      properties:
+        action:
+          type: string
+          enum:
+          - ACCEPT
+          - REJECT
+        reason:
+          type: string
+    ProcessQuoteResponseOutput:
+      type: object
+      required:
+      - success
+      - status
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+        orderId:
+          type: integer
+    CustomerReplyInput:
+      type: object
+      required:
+      - bodyText
+      properties:
+        bodyText:
+          type: string
+    CustomerReplyResponse:
+      type: object
+      required:
+      - success
+      - status
+      - extractedData
+      - validation
+      properties:
+        success:
+          type: boolean
+        status:
+          type: string
+        extractedData:
+          type: object
+          properties:
+            name:
+              type: string
+              nullable: true
+            company:
+              type: string
+              nullable: true
+            email:
+              type: string
+              nullable: true
+            phone:
+              type: string
+              nullable: true
+            address:
+              type: string
+              nullable: true
+        validation:
+          type: object
+          properties:
+            isValid:
+              type: boolean
+            missingFields:
+              type: array
+              items:
+                type: string
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderNumber:
+          type: string
+        rfqId:
+          type: integer
+        quoteId:
+          type: integer
+        customer:
+          type: string
+        customerCompany:
+          type: string
+        partNumber:
+          type: string
+        quantity:
+          type: integer
+        acceptedValue:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+      - id
+      - orderNumber
+      - rfqId
+      - quoteId
+      - partNumber
+      - quantity
+      - acceptedValue
+      - status
+      - createdAt
+      - updatedAt
+    InvoiceStatus:
+      type: string
+      enum:
+      - DRAFT
+      - ISSUED
+      - PAID
+      - CANCELLED
+    PaymentStatus:
+      type: string
+      enum:
+      - UNPAID
+      - PAID
+      - OVERDUE
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        invoiceNumber:
+          type: string
+        orderId:
+          type: integer
+        quoteId:
+          type: integer
+          nullable: true
+        rfqId:
+          type: integer
+          nullable: true
+        customer:
+          type: string
+          nullable: true
+        customerCompany:
+          type: string
+          nullable: true
+        customerEmail:
+          type: string
+          nullable: true
+        partNumber:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: string
+          nullable: true
+        subtotal:
+          type: string
+          nullable: true
+        tax:
+          type: string
+          nullable: true
+        totalAmount:
+          type: string
+        currency:
+          type: string
+        invoiceDate:
+          type: string
+          format: date-time
+          nullable: true
+        dueDate:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          $ref: '#/components/schemas/InvoiceStatus'
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - invoiceNumber
+      - orderId
+      - partNumber
+      - quantity
+      - totalAmount
+      - currency
+      - status
+      - paymentStatus
+      - createdAt
+      - updatedAt
+    ProcessInvoicePaymentInput:
+      type: object
+      properties:
+        action:
+          type: string
+          enum:
+          - PAID
+      required:
+      - action
+    FulfillmentStatus:
+      type: string
+      enum:
+      - READY
+      - PICKING
+      - PACKED
+      - SHIPPED
+      - DELIVERED
+      - COMPLETED
+      - CANCELLED
+    UpdateFulfillmentStatusInput:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/FulfillmentStatus'
+        carrier:
+          type: string
+        trackingNumber:
+          type: string
+        expectedShipDate:
+          type: string
+          format: date-time
+      required:
+      - status
+    Fulfillment:
+      type: object
+      properties:
+        id:
+          type: integer
+        fulfillmentNumber:
+          type: string
+        orderId:
+          type: integer
+        invoiceId:
+          type: integer
+        quoteId:
+          type: integer
+          nullable: true
+        rfqId:
+          type: integer
+          nullable: true
+        customer:
+          type: string
+          nullable: true
+        customerCompany:
+          type: string
+          nullable: true
+        partNumber:
+          type: string
+        quantity:
+          type: integer
+        status:
+          $ref: '#/components/schemas/FulfillmentStatus'
+        warehouseLocation:
+          type: string
+          nullable: true
+        assignedTo:
+          type: string
+          nullable: true
+        trackingNumber:
+          type: string
+          nullable: true
+        carrier:
+          type: string
+          nullable: true
+        expectedShipDate:
+          type: string
+          format: date-time
+          nullable: true
+        shippedAt:
+          type: string
+          format: date-time
+          nullable: true
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - fulfillmentNumber
+      - orderId
+      - invoiceId
+      - partNumber
+      - quantity
+      - status
+      - createdAt
+      - updatedAt

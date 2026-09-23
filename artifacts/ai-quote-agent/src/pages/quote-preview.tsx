@@ -1,5 +1,5 @@
 import { useParams, useLocation } from "wouter";
-import { useGetQuote, useUpdateQuoteStatus, useSendQuote, useGetRfq, getGetQuoteQueryKey, getGetRfqQueryKey } from "@workspace/api-client-react";
+import { useGetQuote, useUpdateQuoteStatus, useSendQuote, useGetRfq, useProcessQuoteResponse, getGetQuoteQueryKey, getGetRfqQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Check, X, ArrowLeft, Download, Send, Loader2, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,10 @@ export function QuotePreviewPage() {
   const id = Number(params.quoteId);
   const { data: quote, isLoading, refetch } = useGetQuote(id, { query: { enabled: Number.isFinite(id), queryKey: getGetQuoteQueryKey(id) } });
   const updateStatus = useUpdateQuoteStatus();
+  const processQuoteResponse = useProcessQuoteResponse();
+  const [isSimulateModalOpen, setIsSimulateModalOpen] = useState(false);
+  const [simulateAction, setSimulateAction] = useState<'ACCEPT' | 'REJECT'>('ACCEPT');
+  const [simulateReason, setSimulateReason] = useState('');
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
@@ -104,6 +108,11 @@ export function QuotePreviewPage() {
               <Send className="mr-2 h-4 w-4" /> Send to Customer
             </Button>
           )}
+          {quote.status === 'SENT' && (
+            <Button onClick={() => setIsSimulateModalOpen(true)} variant="outline" className="border-purple-300 text-purple-700 bg-purple-50 hover:bg-purple-100">
+              Simulate Customer Response
+            </Button>
+          )}
           <Button variant="outline" onClick={handleExportPdf} disabled={isExporting}>
             {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
             {isExporting ? "Exporting..." : "Export PDF"}
@@ -121,7 +130,7 @@ export function QuotePreviewPage() {
           <div className="text-right">
             <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Quotation</div>
             <div className="text-xl font-bold">{quote.quoteNumber}</div>
-            <div className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${quote.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : quote.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+            <div className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${quote.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : quote.status === 'REJECTED' ? 'bg-red-100 text-red-800' : quote.status === 'ACCEPTED' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
               {quote.status}
             </div>
           </div>
@@ -294,6 +303,70 @@ Global Aviation Support & Services
           )}
         </DialogContent>
       </Dialog>
+      {/* Simulate Customer Response Modal */}
+      <Dialog open={isSimulateModalOpen} onOpenChange={setIsSimulateModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Simulate Customer Response</DialogTitle>
+            <DialogDescription>Select how the customer responded to this quote.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <div className="flex gap-4">
+              <Button
+                variant={simulateAction === 'ACCEPT' ? 'default' : 'outline'}
+                onClick={() => setSimulateAction('ACCEPT')}
+                className={simulateAction === 'ACCEPT' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}
+              >
+                Accept Quote
+              </Button>
+              <Button
+                variant={simulateAction === 'REJECT' ? 'default' : 'outline'}
+                onClick={() => setSimulateAction('REJECT')}
+                className={simulateAction === 'REJECT' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}
+              >
+                Reject Quote
+              </Button>
+            </div>
+            {simulateAction === 'REJECT' && (
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Rejection Reason</label>
+                <textarea
+                  className="min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Enter rejection reason..."
+                  value={simulateReason}
+                  onChange={(e) => setSimulateReason(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSimulateModalOpen(false)}>Cancel</Button>
+            <Button 
+              disabled={processQuoteResponse.isPending || (simulateAction === 'REJECT' && !simulateReason.trim())}
+              onClick={() => {
+                processQuoteResponse.mutate({
+                  quoteId: id,
+                  data: { action: simulateAction, reason: simulateAction === 'REJECT' ? simulateReason : undefined }
+                }, {
+                  onSuccess: () => {
+                    toast({ title: `Quote marked as ${simulateAction === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED'}` });
+                    setIsSimulateModalOpen(false);
+                    refetch();
+                  },
+                  onError: (error: any) => {
+                    const msg = error?.response?.data?.error || "Failed to process quote response";
+                    toast({ title: msg, variant: "destructive" });
+                  }
+                });
+              }}
+            >
+              {processQuoteResponse.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirm Response
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

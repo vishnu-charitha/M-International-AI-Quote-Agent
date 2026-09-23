@@ -13,6 +13,7 @@ export const QuoteStatus = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   SENT: 'SENT',
+  ACCEPTED: 'ACCEPTED',
 } as const;
 
 export interface Quote {
@@ -341,13 +342,27 @@ export const ReviewHistoryEntryAction = {
   EDITED: 'EDITED',
   REQUESTED_INFO: 'REQUESTED_INFO',
   STARTED_REVIEW: 'STARTED_REVIEW',
+  quote_accepted: 'quote_accepted',
+  quote_rejected: 'quote_rejected',
+  invoice_created: 'invoice_created',
+  invoice_issued: 'invoice_issued',
+  invoice_paid: 'invoice_paid',
+  fulfillment_created: 'fulfillment_created',
+  fulfillment_picking: 'fulfillment_picking',
+  fulfillment_packed: 'fulfillment_packed',
+  fulfillment_shipped: 'fulfillment_shipped',
+  fulfillment_delivered: 'fulfillment_delivered',
+  fulfillment_completed: 'fulfillment_completed',
+  fulfillment_cancelled: 'fulfillment_cancelled',
 } as const;
 
+export const ReviewHistoryEntryPreviousClassification = {...RequestType,...QuoteStatus,} as const
+export const ReviewHistoryEntryNewClassification = {...RequestType,...QuoteStatus,} as const
 export interface ReviewHistoryEntry {
   id: number;
   action: ReviewHistoryEntryAction;
-  previousClassification: RequestType;
-  newClassification: RequestType;
+  previousClassification: typeof ReviewHistoryEntryPreviousClassification[keyof typeof ReviewHistoryEntryPreviousClassification];
+  newClassification: typeof ReviewHistoryEntryNewClassification[keyof typeof ReviewHistoryEntryNewClassification];
   notes: string;
   createdAt: string;
 }
@@ -615,6 +630,162 @@ export interface Dashboard {
   workflows: WorkflowStat[];
   activities: Activity[];
   emailPipeline?: PipelineMetric[];
+}
+
+export type ProcessQuoteResponseInputAction = typeof ProcessQuoteResponseInputAction[keyof typeof ProcessQuoteResponseInputAction];
+
+
+export const ProcessQuoteResponseInputAction = {
+  ACCEPT: 'ACCEPT',
+  REJECT: 'REJECT',
+} as const;
+
+export interface ProcessQuoteResponseInput {
+  action: ProcessQuoteResponseInputAction;
+  reason?: string;
+}
+
+export interface ProcessQuoteResponseOutput {
+  success: boolean;
+  status: string;
+  orderId?: number;
+}
+
+export interface CustomerReplyInput {
+  bodyText: string;
+}
+
+export type CustomerReplyResponseExtractedData = {
+  name?: string | null;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+};
+
+export type CustomerReplyResponseValidation = {
+  isValid?: boolean;
+  missingFields?: string[];
+};
+
+export interface CustomerReplyResponse {
+  success: boolean;
+  status: string;
+  extractedData: CustomerReplyResponseExtractedData;
+  validation: CustomerReplyResponseValidation;
+}
+
+export interface Order {
+  id: number;
+  orderNumber: string;
+  rfqId: number;
+  quoteId: number;
+  customer?: string;
+  customerCompany?: string;
+  partNumber: string;
+  quantity: number;
+  acceptedValue: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type InvoiceStatus = typeof InvoiceStatus[keyof typeof InvoiceStatus];
+
+
+export const InvoiceStatus = {
+  DRAFT: 'DRAFT',
+  ISSUED: 'ISSUED',
+  PAID: 'PAID',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+export type PaymentStatus = typeof PaymentStatus[keyof typeof PaymentStatus];
+
+
+export const PaymentStatus = {
+  UNPAID: 'UNPAID',
+  PAID: 'PAID',
+  OVERDUE: 'OVERDUE',
+} as const;
+
+export interface Invoice {
+  id: number;
+  invoiceNumber: string;
+  orderId: number;
+  quoteId?: number | null;
+  rfqId?: number | null;
+  customer?: string | null;
+  customerCompany?: string | null;
+  customerEmail?: string | null;
+  partNumber: string;
+  quantity: number;
+  unitPrice?: string | null;
+  subtotal?: string | null;
+  tax?: string | null;
+  totalAmount: string;
+  currency: string;
+  invoiceDate?: string | null;
+  dueDate?: string | null;
+  status: InvoiceStatus;
+  paymentStatus: PaymentStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ProcessInvoicePaymentInputAction = typeof ProcessInvoicePaymentInputAction[keyof typeof ProcessInvoicePaymentInputAction];
+
+
+export const ProcessInvoicePaymentInputAction = {
+  PAID: 'PAID',
+} as const;
+
+export interface ProcessInvoicePaymentInput {
+  action: ProcessInvoicePaymentInputAction;
+}
+
+export type FulfillmentStatus = typeof FulfillmentStatus[keyof typeof FulfillmentStatus];
+
+
+export const FulfillmentStatus = {
+  READY: 'READY',
+  PICKING: 'PICKING',
+  PACKED: 'PACKED',
+  SHIPPED: 'SHIPPED',
+  DELIVERED: 'DELIVERED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+export interface UpdateFulfillmentStatusInput {
+  status: FulfillmentStatus;
+  carrier?: string;
+  trackingNumber?: string;
+  expectedShipDate?: string;
+}
+
+export interface Fulfillment {
+  id: number;
+  fulfillmentNumber: string;
+  orderId: number;
+  invoiceId: number;
+  quoteId?: number | null;
+  rfqId?: number | null;
+  customer?: string | null;
+  customerCompany?: string | null;
+  partNumber: string;
+  quantity: number;
+  status: FulfillmentStatus;
+  warehouseLocation?: string | null;
+  assignedTo?: string | null;
+  trackingNumber?: string | null;
+  carrier?: string | null;
+  expectedShipDate?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type SearchParameter = string;

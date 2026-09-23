@@ -205,9 +205,9 @@ export const CreateRfqResponse = zod.object({
 }),zod.null()]).optional(),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
-  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
-  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW', 'quote_accepted', 'quote_rejected', 'invoice_created', 'invoice_issued', 'invoice_paid', 'fulfillment_created', 'fulfillment_picking', 'fulfillment_packed', 'fulfillment_shipped', 'fulfillment_delivered', 'fulfillment_completed', 'fulfillment_cancelled']),
+  "previousClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
+  "newClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
   "notes": zod.string(),
   "createdAt": zod.string()
 })).optional(),
@@ -386,9 +386,9 @@ export const GetRfqResponse = zod.object({
 }),zod.null()]).optional(),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
-  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
-  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW', 'quote_accepted', 'quote_rejected', 'invoice_created', 'invoice_issued', 'invoice_paid', 'fulfillment_created', 'fulfillment_picking', 'fulfillment_packed', 'fulfillment_shipped', 'fulfillment_delivered', 'fulfillment_completed', 'fulfillment_cancelled']),
+  "previousClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
+  "newClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
   "notes": zod.string(),
   "createdAt": zod.string()
 })).optional(),
@@ -543,9 +543,9 @@ export const UpdateRfqResponse = zod.object({
 }),zod.null()]).optional(),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
-  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
-  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW', 'quote_accepted', 'quote_rejected', 'invoice_created', 'invoice_issued', 'invoice_paid', 'fulfillment_created', 'fulfillment_picking', 'fulfillment_packed', 'fulfillment_shipped', 'fulfillment_delivered', 'fulfillment_completed', 'fulfillment_cancelled']),
+  "previousClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
+  "newClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
   "notes": zod.string(),
   "createdAt": zod.string()
 })).optional(),
@@ -702,9 +702,9 @@ export const UpdateCustomerInfoResponse = zod.object({
 }),zod.null()]).optional(),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
-  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
-  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW', 'quote_accepted', 'quote_rejected', 'invoice_created', 'invoice_issued', 'invoice_paid', 'fulfillment_created', 'fulfillment_picking', 'fulfillment_packed', 'fulfillment_shipped', 'fulfillment_delivered', 'fulfillment_completed', 'fulfillment_cancelled']),
+  "previousClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
+  "newClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
   "notes": zod.string(),
   "createdAt": zod.string()
 })).optional(),
@@ -858,9 +858,9 @@ export const AddRfqReviewResponse = zod.object({
 }),zod.null()]).optional(),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
-  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
-  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW', 'quote_accepted', 'quote_rejected', 'invoice_created', 'invoice_issued', 'invoice_paid', 'fulfillment_created', 'fulfillment_picking', 'fulfillment_packed', 'fulfillment_shipped', 'fulfillment_delivered', 'fulfillment_completed', 'fulfillment_cancelled']),
+  "previousClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
+  "newClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
   "notes": zod.string(),
   "createdAt": zod.string()
 })).optional(),
@@ -1292,9 +1292,9 @@ export const GetAiReviewResponse = zod.object({
 }),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
-  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
-  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW', 'quote_accepted', 'quote_rejected', 'invoice_created', 'invoice_issued', 'invoice_paid', 'fulfillment_created', 'fulfillment_picking', 'fulfillment_packed', 'fulfillment_shipped', 'fulfillment_delivered', 'fulfillment_completed', 'fulfillment_cancelled']),
+  "previousClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
+  "newClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
   "notes": zod.string(),
   "createdAt": zod.string()
 }))
@@ -1383,9 +1383,9 @@ export const ApproveAiReviewResponse = zod.object({
 }),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
-  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
-  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW', 'quote_accepted', 'quote_rejected', 'invoice_created', 'invoice_issued', 'invoice_paid', 'fulfillment_created', 'fulfillment_picking', 'fulfillment_packed', 'fulfillment_shipped', 'fulfillment_delivered', 'fulfillment_completed', 'fulfillment_cancelled']),
+  "previousClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
+  "newClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
   "notes": zod.string(),
   "createdAt": zod.string()
 }))
@@ -1479,9 +1479,9 @@ export const ReclassifyAiReviewResponse = zod.object({
 }),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
-  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
-  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW', 'quote_accepted', 'quote_rejected', 'invoice_created', 'invoice_issued', 'invoice_paid', 'fulfillment_created', 'fulfillment_picking', 'fulfillment_packed', 'fulfillment_shipped', 'fulfillment_delivered', 'fulfillment_completed', 'fulfillment_cancelled']),
+  "previousClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
+  "newClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
   "notes": zod.string(),
   "createdAt": zod.string()
 }))
@@ -1570,9 +1570,9 @@ export const RejectAiReviewResponse = zod.object({
 }),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
-  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
-  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW', 'quote_accepted', 'quote_rejected', 'invoice_created', 'invoice_issued', 'invoice_paid', 'fulfillment_created', 'fulfillment_picking', 'fulfillment_packed', 'fulfillment_shipped', 'fulfillment_delivered', 'fulfillment_completed', 'fulfillment_cancelled']),
+  "previousClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
+  "newClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
   "notes": zod.string(),
   "createdAt": zod.string()
 }))
@@ -1672,9 +1672,9 @@ export const UpdateAiReviewResponse = zod.object({
 }),
   "reviewHistory": zod.array(zod.object({
   "id": zod.number().int(),
-  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW']),
-  "previousClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
-  "newClassification": zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),
+  "action": zod.enum(['APPROVED', 'REJECTED', 'RECLASSIFIED', 'EDITED', 'REQUESTED_INFO', 'STARTED_REVIEW', 'quote_accepted', 'quote_rejected', 'invoice_created', 'invoice_issued', 'invoice_paid', 'fulfillment_created', 'fulfillment_picking', 'fulfillment_packed', 'fulfillment_shipped', 'fulfillment_delivered', 'fulfillment_completed', 'fulfillment_cancelled']),
+  "previousClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
+  "newClassification": zod.union([zod.enum(['PARTS_EXCHANGE', 'NEW_PART_PURCHASE', 'REPAIR', 'OVERHAUL', 'INSPECTION', 'UNKNOWN']),zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])]),
   "notes": zod.string(),
   "createdAt": zod.string()
 }))
@@ -1806,7 +1806,7 @@ export const GetQuotesForRfqResponseItem = zod.object({
   "leadTime": zod.string().optional(),
   "warranty": zod.string().optional(),
   "validity": zod.string().optional(),
-  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT']),
+  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED']),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1840,7 +1840,7 @@ export const GenerateQuoteResponse = zod.object({
   "leadTime": zod.string().optional(),
   "warranty": zod.string().optional(),
   "validity": zod.string().optional(),
-  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT']),
+  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED']),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1873,7 +1873,7 @@ export const GetQuoteResponse = zod.object({
   "leadTime": zod.string().optional(),
   "warranty": zod.string().optional(),
   "validity": zod.string().optional(),
-  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT']),
+  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED']),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1887,7 +1887,7 @@ export const UpdateQuoteStatusParams = zod.object({
 })
 
 export const UpdateQuoteStatusBody = zod.object({
-  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT'])
+  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED'])
 })
 
 export const UpdateQuoteStatusResponse = zod.object({
@@ -1910,7 +1910,7 @@ export const UpdateQuoteStatusResponse = zod.object({
   "leadTime": zod.string().optional(),
   "warranty": zod.string().optional(),
   "validity": zod.string().optional(),
-  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT']),
+  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED']),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
@@ -1947,9 +1947,308 @@ export const SendQuoteResponse = zod.object({
   "leadTime": zod.string().optional(),
   "warranty": zod.string().optional(),
   "validity": zod.string().optional(),
-  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT']),
+  "status": zod.enum(['DRAFT', 'APPROVED', 'REJECTED', 'SENT', 'ACCEPTED']),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
 })
+
+
+/**
+ * @summary Process customer response for a quote
+ */
+export const ProcessQuoteResponseParams = zod.object({
+  "quoteId": zod.coerce.number().int()
+})
+
+export const ProcessQuoteResponseBody = zod.object({
+  "action": zod.enum(['ACCEPT', 'REJECT']),
+  "reason": zod.string().optional()
+})
+
+export const ProcessQuoteResponseResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.string(),
+  "orderId": zod.number().int().optional()
+})
+
+
+/**
+ * @summary Process a simulated customer reply for an RFQ
+ */
+export const ProcessCustomerReplyParams = zod.object({
+  "rfqId": zod.coerce.number().int()
+})
+
+export const ProcessCustomerReplyBody = zod.object({
+  "bodyText": zod.string()
+})
+
+export const ProcessCustomerReplyResponse = zod.object({
+  "success": zod.boolean(),
+  "status": zod.string(),
+  "extractedData": zod.object({
+  "name": zod.string().nullish(),
+  "company": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "address": zod.string().nullish()
+}),
+  "validation": zod.object({
+  "isValid": zod.boolean().optional(),
+  "missingFields": zod.array(zod.string()).optional()
+})
+})
+
+
+/**
+ * @summary Get all orders
+ */
+export const ListOrdersResponseItem = zod.object({
+  "id": zod.number().int(),
+  "orderNumber": zod.string(),
+  "rfqId": zod.number().int(),
+  "quoteId": zod.number().int(),
+  "customer": zod.string().optional(),
+  "customerCompany": zod.string().optional(),
+  "partNumber": zod.string(),
+  "quantity": zod.number().int(),
+  "acceptedValue": zod.string(),
+  "status": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListOrdersResponse = zod.array(ListOrdersResponseItem)
+
+
+/**
+ * @summary Get order by ID
+ */
+export const GetOrderParams = zod.object({
+  "orderId": zod.coerce.number().int()
+})
+
+export const GetOrderResponse = zod.unknown()
+
+
+/**
+ * @summary List all invoices
+ */
+export const ListInvoicesResponseItem = zod.object({
+  "id": zod.number().int(),
+  "invoiceNumber": zod.string(),
+  "orderId": zod.number().int(),
+  "quoteId": zod.number().int().nullish(),
+  "rfqId": zod.number().int().nullish(),
+  "customer": zod.string().nullish(),
+  "customerCompany": zod.string().nullish(),
+  "customerEmail": zod.string().nullish(),
+  "partNumber": zod.string(),
+  "quantity": zod.number().int(),
+  "unitPrice": zod.string().nullish(),
+  "subtotal": zod.string().nullish(),
+  "tax": zod.string().nullish(),
+  "totalAmount": zod.string(),
+  "currency": zod.string(),
+  "invoiceDate": zod.coerce.date().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['DRAFT', 'ISSUED', 'PAID', 'CANCELLED']),
+  "paymentStatus": zod.enum(['UNPAID', 'PAID', 'OVERDUE']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListInvoicesResponse = zod.array(ListInvoicesResponseItem)
+
+
+/**
+ * @summary Get invoice details
+ */
+export const GetInvoiceParams = zod.object({
+  "invoiceId": zod.coerce.number().int()
+})
+
+export const GetInvoiceResponse = zod.object({
+  "id": zod.number().int(),
+  "invoiceNumber": zod.string(),
+  "orderId": zod.number().int(),
+  "quoteId": zod.number().int().nullish(),
+  "rfqId": zod.number().int().nullish(),
+  "customer": zod.string().nullish(),
+  "customerCompany": zod.string().nullish(),
+  "customerEmail": zod.string().nullish(),
+  "partNumber": zod.string(),
+  "quantity": zod.number().int(),
+  "unitPrice": zod.string().nullish(),
+  "subtotal": zod.string().nullish(),
+  "tax": zod.string().nullish(),
+  "totalAmount": zod.string(),
+  "currency": zod.string(),
+  "invoiceDate": zod.coerce.date().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['DRAFT', 'ISSUED', 'PAID', 'CANCELLED']),
+  "paymentStatus": zod.enum(['UNPAID', 'PAID', 'OVERDUE']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Create an invoice for an order
+ */
+export const CreateInvoiceParams = zod.object({
+  "orderId": zod.coerce.number().int()
+})
+
+export const CreateInvoiceResponse = zod.object({
+  "id": zod.number().int(),
+  "invoiceNumber": zod.string(),
+  "orderId": zod.number().int(),
+  "quoteId": zod.number().int().nullish(),
+  "rfqId": zod.number().int().nullish(),
+  "customer": zod.string().nullish(),
+  "customerCompany": zod.string().nullish(),
+  "customerEmail": zod.string().nullish(),
+  "partNumber": zod.string(),
+  "quantity": zod.number().int(),
+  "unitPrice": zod.string().nullish(),
+  "subtotal": zod.string().nullish(),
+  "tax": zod.string().nullish(),
+  "totalAmount": zod.string(),
+  "currency": zod.string(),
+  "invoiceDate": zod.coerce.date().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['DRAFT', 'ISSUED', 'PAID', 'CANCELLED']),
+  "paymentStatus": zod.enum(['UNPAID', 'PAID', 'OVERDUE']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Issue a draft invoice
+ */
+export const IssueInvoiceParams = zod.object({
+  "invoiceId": zod.coerce.number().int()
+})
+
+export const IssueInvoiceResponse = zod.object({
+  "id": zod.number().int(),
+  "invoiceNumber": zod.string(),
+  "orderId": zod.number().int(),
+  "quoteId": zod.number().int().nullish(),
+  "rfqId": zod.number().int().nullish(),
+  "customer": zod.string().nullish(),
+  "customerCompany": zod.string().nullish(),
+  "customerEmail": zod.string().nullish(),
+  "partNumber": zod.string(),
+  "quantity": zod.number().int(),
+  "unitPrice": zod.string().nullish(),
+  "subtotal": zod.string().nullish(),
+  "tax": zod.string().nullish(),
+  "totalAmount": zod.string(),
+  "currency": zod.string(),
+  "invoiceDate": zod.coerce.date().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['DRAFT', 'ISSUED', 'PAID', 'CANCELLED']),
+  "paymentStatus": zod.enum(['UNPAID', 'PAID', 'OVERDUE']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Simulate payment for an invoice
+ */
+export const ProcessInvoicePaymentParams = zod.object({
+  "invoiceId": zod.coerce.number().int()
+})
+
+export const ProcessInvoicePaymentBody = zod.object({
+  "action": zod.enum(['PAID'])
+})
+
+export const ProcessInvoicePaymentResponse = zod.object({
+  "id": zod.number().int(),
+  "invoiceNumber": zod.string(),
+  "orderId": zod.number().int(),
+  "quoteId": zod.number().int().nullish(),
+  "rfqId": zod.number().int().nullish(),
+  "customer": zod.string().nullish(),
+  "customerCompany": zod.string().nullish(),
+  "customerEmail": zod.string().nullish(),
+  "partNumber": zod.string(),
+  "quantity": zod.number().int(),
+  "unitPrice": zod.string().nullish(),
+  "subtotal": zod.string().nullish(),
+  "tax": zod.string().nullish(),
+  "totalAmount": zod.string(),
+  "currency": zod.string(),
+  "invoiceDate": zod.coerce.date().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['DRAFT', 'ISSUED', 'PAID', 'CANCELLED']),
+  "paymentStatus": zod.enum(['UNPAID', 'PAID', 'OVERDUE']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get all fulfillments
+ */
+export const ListFulfillmentsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "fulfillmentNumber": zod.string(),
+  "orderId": zod.number().int(),
+  "invoiceId": zod.number().int(),
+  "quoteId": zod.number().int().nullish(),
+  "rfqId": zod.number().int().nullish(),
+  "customer": zod.string().nullish(),
+  "customerCompany": zod.string().nullish(),
+  "partNumber": zod.string(),
+  "quantity": zod.number().int(),
+  "status": zod.enum(['READY', 'PICKING', 'PACKED', 'SHIPPED', 'DELIVERED', 'COMPLETED', 'CANCELLED']),
+  "warehouseLocation": zod.string().nullish(),
+  "assignedTo": zod.string().nullish(),
+  "trackingNumber": zod.string().nullish(),
+  "carrier": zod.string().nullish(),
+  "expectedShipDate": zod.coerce.date().nullish(),
+  "shippedAt": zod.coerce.date().nullish(),
+  "deliveredAt": zod.coerce.date().nullish(),
+  "completedAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListFulfillmentsResponse = zod.array(ListFulfillmentsResponseItem)
+
+
+/**
+ * @summary Get fulfillment by ID
+ */
+export const GetFulfillmentParams = zod.object({
+  "fulfillmentId": zod.coerce.number().int()
+})
+
+export const GetFulfillmentResponse = zod.unknown()
+
+
+/**
+ * @summary Update fulfillment status
+ */
+export const UpdateFulfillmentStatusParams = zod.object({
+  "fulfillmentId": zod.coerce.number().int()
+})
+
+export const UpdateFulfillmentStatusBody = zod.unknown()
+
+export const UpdateFulfillmentStatusResponse = zod.unknown()
+
+
+/**
+ * @summary Create a fulfillment for an order
+ */
+export const CreateFulfillmentParams = zod.object({
+  "orderId": zod.coerce.number().int()
+})
+
+export const CreateFulfillmentResponse = zod.unknown()
 
 

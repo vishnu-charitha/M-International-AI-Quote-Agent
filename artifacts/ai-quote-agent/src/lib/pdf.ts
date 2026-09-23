@@ -167,3 +167,117 @@ export async function generateQuotePdf(quote: Quote, returnBase64 = false): Prom
     doc.save(filename);
   }
 }
+
+export async function generateInvoicePdf(invoice: any, returnBase64 = false): Promise<string | void> {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+  });
+
+  const primaryColor = [11, 46, 89]; 
+  const secondaryColor = [100, 116, 139]; 
+
+  // --- Header ---
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.rect(0, 0, 210, 40, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(24);
+  doc.text("M INTERNATIONAL", 14, 25);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("INVOICE", 150, 25);
+
+  // --- Invoice Details ---
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+
+  let startY = 55;
+  doc.setFont("helvetica", "bold");
+  doc.text("Invoice Number:", 14, startY);
+  doc.setFont("helvetica", "normal");
+  doc.text(invoice.invoiceNumber, 50, startY);
+
+  startY += 7;
+  doc.setFont("helvetica", "bold");
+  doc.text("Order Ref:", 14, startY);
+  doc.setFont("helvetica", "normal");
+  doc.text(invoice.orderId ? invoice.orderId.toString() : "N/A", 50, startY);
+
+  startY += 7;
+  doc.setFont("helvetica", "bold");
+  doc.text("Invoice Date:", 14, startY);
+  doc.setFont("helvetica", "normal");
+  doc.text(new Date(invoice.createdAt).toLocaleDateString(), 50, startY);
+  
+  startY += 7;
+  doc.setFont("helvetica", "bold");
+  doc.text("Status:", 14, startY);
+  doc.setFont("helvetica", "normal");
+  doc.text(invoice.status + " / " + invoice.paymentStatus, 50, startY);
+
+  // --- Customer Info ---
+  startY = 55;
+  doc.setFont("helvetica", "bold");
+  doc.text("Bill To:", 120, startY);
+  doc.setFont("helvetica", "normal");
+  doc.text(invoice.customer || "Unknown", 120, startY + 7);
+  if (invoice.customerCompany) {
+    doc.text(invoice.customerCompany, 120, startY + 14);
+  }
+
+  // --- Items Table ---
+  const tableData = [
+    [
+      invoice.partNumber,
+      invoice.quantity.toString(),
+      (invoice.totalAmount ? (parseFloat(invoice.totalAmount) / invoice.quantity).toFixed(2) : "0.00"),
+      invoice.totalAmount
+    ]
+  ];
+
+  autoTable(doc, {
+    startY: 90,
+    head: [["Part Number", "Qty", "Unit Price (USD)", "Amount (USD)"]],
+    body: tableData,
+    theme: "striped",
+    headStyles: { fillColor: primaryColor as any, textColor: 255 },
+    styles: { font: "helvetica", fontSize: 9 },
+    columnStyles: {
+      0: { cellWidth: 80 },
+      1: { cellWidth: 20, halign: 'right' },
+      2: { cellWidth: 40, halign: 'right' },
+      3: { cellWidth: 40, halign: 'right' },
+    },
+  });
+
+  // --- Totals ---
+  const finalY = (doc as any).lastAutoTable.finalY + 15;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Total Amount (USD):", 120, finalY);
+  
+  doc.setFont("helvetica", "normal");
+  doc.text("$" + (invoice.totalAmount ? invoice.totalAmount.toString() : "0.00"), 165, finalY);
+
+  // --- Footer ---
+  doc.setFontSize(8);
+  doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+  doc.text(
+    "Thank you for your business. Please remit payment upon receipt.",
+    105,
+    280,
+    { align: "center" }
+  );
+
+  if (returnBase64) {
+    const dataUri = doc.output("datauristring");
+    return dataUri; 
+  } else {
+    const filename = `M-International-Invoice-${invoice.invoiceNumber}.pdf`;
+    doc.save(filename);
+  }
+}

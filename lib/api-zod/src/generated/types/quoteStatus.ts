@@ -14,4 +14,5 @@ export const QuoteStatus = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
   SENT: 'SENT',
+  ACCEPTED: 'ACCEPTED',
 } as const;

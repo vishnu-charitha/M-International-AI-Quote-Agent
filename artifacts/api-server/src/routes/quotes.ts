@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db } from "@workspace/db";
-import { quotesTable, rfqsTable, rfqItemsTable, inventoryTable, partCatalogTable, customersTable } from "@workspace/db/schema";
+import { quotesTable, rfqsTable, rfqItemsTable, inventoryTable, partCatalogTable, customersTable, ordersTable, aiReviewHistoryTable, emailOutboxTable } from "@workspace/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { isMicrosoftConfigured, sendEmailWithAttachment } from "../services/microsoft-graph";
 import { rfqDetails } from "../services/mock-data";
@@ -150,7 +150,6 @@ quotesRouter.get("/quotes/:quoteId", async (req, res) => {
     ...quote,
     rfqId: quote.rfqId ? (quote.rfqId + 1000) : quote.rfqId // For quotes created against offset RFQs, rfqId will be 1-N. So add 1000. Actually, all DB RFQs have offset. So we always add 1000 if it exists. But wait, what if the quote was made for a mock RFQ? Let's just blindly add 1000 if we assume it's from db. Actually better:
   };
-  mappedQuote.rfqId = mappedQuote.rfqId + 1000;
   
   res.json(mappedQuote);
 });
@@ -175,7 +174,9 @@ quotesRouter.post("/quotes/:quoteId/send", async (req, res) => {
   const { quoteId } = req.params;
   const { pdfBase64 } = req.body;
 
-  if (!isMicrosoftConfigured()) {
+  const isDevelopmentMode = process.env.EMAIL_MODE === "development";
+
+  if (!isDevelopmentMode && !isMicrosoftConfigured()) {
     res.status(400).json({ error: "Microsoft 365 email integration is not configured." });
     return;
   }
@@ -224,16 +225,28 @@ M International
 Global Aviation Support & Services`;
 
   try {
-    // pdfBase64 might come with a data URI prefix, strip it if present
-    const base64Content = pdfBase64.includes("base64,") ? pdfBase64.split("base64,")[1] : pdfBase64;
-    
-    await sendEmailWithAttachment(
-      customer.email,
-      subject,
-      body,
-      { name: `M-International-Quote-${quote.quoteNumber}.pdf`, contentBytes: base64Content }
-    );
+    if (isDevelopmentMode) {
+      console.log(`[POST /quotes/${quoteId}/send] Development Mode: Mocking email to ${customer.email}. Subject: ${subject}`);
+      await db.insert(emailOutboxTable).values({
+        rfqId: quote.rfqId,
+        recipient: customer.email,
+        subject: subject,
+        bodyText: body + "\n\n[Attachment: PDF Document]",
+        status: "RECORDED",
+      });
+    } else {
+      // pdfBase64 might come with a data URI prefix, strip it if present
+      const base64Content = pdfBase64.includes("base64,") ? pdfBase64.split("base64,")[1] : pdfBase64;
+      
+      await sendEmailWithAttachment(
+        customer.email,
+        subject,
+        body,
+        { name: `M-International-Quote-${quote.quoteNumber}.pdf`, contentBytes: base64Content }
+      );
+    }
   } catch (error: any) {
+    console.error(`[POST /quotes/${quoteId}/send] Failed:`, error.message);
     res.status(500).json({ error: `Failed to send email: ${error.message}` });
     return;
   }
@@ -256,4 +269,74 @@ Global Aviation Support & Services`;
   };
 
   res.json(mappedQuote);
+});
+
+quotesRouter.post("/quotes/:quoteId/response", async (req, res) => {
+  const { quoteId } = req.params;
+  const { action, reason } = req.body;
+
+  if (!["ACCEPT", "REJECT"].includes(action)) {
+    return res.status(400).json({ error: "Invalid action" });
+  }
+
+  const quote = await db.select().from(quotesTable).where(eq(quotesTable.id, Number(quoteId)));
+  if (quote.length === 0) {
+    return res.status(404).json({ error: "Quote not found" });
+  }
+
+  const q = quote[0];
+  if (q.status !== "SENT") {
+    return res.status(400).json({ error: "Quote is not in SENT status" });
+  }
+
+  if (action === "ACCEPT") {
+    // Check if order already exists
+    const existingOrder = await db.select().from(ordersTable).where(eq(ordersTable.quoteId, q.id));
+    
+    let orderId;
+    if (existingOrder.length > 0) {
+      orderId = existingOrder[0].id;
+    } else {
+      const inserted = await db.insert(ordersTable).values({
+        orderNumber: `ORD-${Date.now()}`,
+        rfqId: q.rfqId,
+        quoteId: q.id,
+        customer: q.customer,
+        customerCompany: q.customerCompany,
+        partNumber: q.partNumber,
+        quantity: q.quantity,
+        acceptedValue: q.totalAmount || "0",
+        status: "CREATED",
+      }).returning();
+      orderId = inserted[0].id;
+    }
+
+    await db.update(quotesTable).set({ status: "ACCEPTED" }).where(eq(quotesTable.id, q.id));
+
+    // Audit log
+    
+    await db.insert(aiReviewHistoryTable).values({
+      rfqId: q.rfqId,
+      action: "quote_accepted",
+      previousClassification: "SENT",
+      newClassification: "ACCEPTED",
+      notes: "Customer accepted quote.",
+    });
+
+    return res.json({ success: true, status: "ACCEPTED", orderId });
+  } else {
+    await db.update(quotesTable).set({ status: "REJECTED" }).where(eq(quotesTable.id, q.id));
+
+    // Audit log
+    
+    await db.insert(aiReviewHistoryTable).values({
+      rfqId: q.rfqId,
+      action: "quote_rejected",
+      previousClassification: "SENT",
+      newClassification: "REJECTED",
+      notes: reason || "Customer rejected quote.",
+    });
+
+    return res.json({ success: true, status: "REJECTED" });
+  }
 });

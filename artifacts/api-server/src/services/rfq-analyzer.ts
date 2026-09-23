@@ -190,3 +190,62 @@ export async function analyzeManualRfq(rawText: string) {
   
   return JSON.parse(content);
 }
+
+export async function extractCustomerReplyInfo(rawText: string) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("OPENROUTER_API_KEY is required in production mode");
+    }
+    // Fallback regex extraction for development without API key
+    const phoneMatch = rawText.match(/(?:\+?\d{1,3}[\s-]?)?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{4}/);
+    const addressMatch = rawText.match(/\d+[\w\s,]+(?:Street|St|Road|Rd|Avenue|Ave|Boulevard|Blvd|Drive|Dr)[\w\s,]+(?:[A-Z]{2}\s+\d{5})?/i);
+    
+    return {
+      name: null,
+      company: null,
+      email: null,
+      phone: phoneMatch ? phoneMatch[0] : null,
+      address: addressMatch ? addressMatch[0].trim() : null,
+    };
+  }
+
+  const openai = new OpenAI({ 
+    apiKey,
+    baseURL: "https://openrouter.ai/api/v1",
+  });
+  
+  const model = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
+
+  const response = await openai.chat.completions.create({
+    model,
+    response_format: zodResponseFormat(z.object({
+      name: z.string().nullable(),
+      company: z.string().nullable(),
+      email: z.string().nullable(),
+      phone: z.string().nullable(),
+      address: z.string().nullable(),
+    }), "customer_info"),
+    messages: [
+      {
+        role: "system",
+        content: "You extract customer contact information from an email reply. The text may contain conversational parts and a signature. Only extract the explicit details provided. If a field is not present, set it to null. Return only structured data.",
+      },
+      {
+        role: "user",
+        content: rawText,
+      },
+    ],
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error("AI provider returned no analysis");
+  
+  return JSON.parse(content) as {
+    name: string | null;
+    company: string | null;
+    email: string | null;
+    phone: string | null;
+    address: string | null;
+  };
+}

@@ -5,14 +5,15 @@
  * M International AI Quote Agent operations API
  * OpenAPI spec version: 0.1.0
  */
-import type { RequestType } from './requestType';
 import type { ReviewHistoryEntryAction } from './reviewHistoryEntryAction';
+import type { ReviewHistoryEntryNewClassification } from './reviewHistoryEntryNewClassification';
+import type { ReviewHistoryEntryPreviousClassification } from './reviewHistoryEntryPreviousClassification';
 
 export interface ReviewHistoryEntry {
   id: number;
   action: ReviewHistoryEntryAction;
-  previousClassification: RequestType;
-  newClassification: RequestType;
+  previousClassification: typeof ReviewHistoryEntryPreviousClassification[keyof typeof ReviewHistoryEntryPreviousClassification];
+  newClassification: typeof ReviewHistoryEntryNewClassification[keyof typeof ReviewHistoryEntryNewClassification];
   notes: string;
   createdAt: string;
 }

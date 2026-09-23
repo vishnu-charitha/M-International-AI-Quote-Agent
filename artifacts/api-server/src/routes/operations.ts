@@ -17,12 +17,15 @@ import {
   AddRfqReviewBody,
   GetEmailOutboxResponse,
   UpdateCustomerInfoBody,
+  ProcessCustomerReplyParams,
+  ProcessCustomerReplyBody,
+  ProcessCustomerReplyResponse,
 } from "@workspace/api-zod";
 import { aiReviews, dashboard, emails, rfqDetails, rfqs } from "../services/mock-data";
 import { phase2Emails, phase2Reviews } from "../services/phase2-state";
-import { analyzeManualRfq } from "../services/rfq-analyzer";
+import { analyzeManualRfq, extractCustomerReplyInfo } from "../services/rfq-analyzer";
 import { db } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { rfqsTable, rfqItemsTable, customersTable, aiReviewHistoryTable, emailOutboxTable } from "@workspace/db/schema";
 import { isMicrosoftConfigured, sendEmail } from "../services/microsoft-graph";
 
@@ -525,6 +528,146 @@ router.patch("/rfqs/:rfqId/customer", async (req, res) => {
     res.status(500).json({ error: "Failed to update customer info" });
   }
 });
+
+router.post("/rfqs/:rfqId/customer-reply", async (req, res) => {
+  try {
+    const { rfqId } = ProcessCustomerReplyParams.parse(req.params);
+    const { bodyText } = ProcessCustomerReplyBody.parse(req.body);
+
+    let detail: any = null;
+    let isDb = false;
+    let dbId = rfqId;
+    let rfqNumber = "";
+
+    if (rfqId > 1000 && db) {
+      dbId = rfqId - 1000;
+      const rows = await db.select().from(rfqsTable).leftJoin(customersTable, eq(rfqsTable.customerId, customersTable.id)).where(eq(rfqsTable.id, dbId));
+      if (rows.length > 0) {
+        isDb = true;
+        rfqNumber = rows[0].rfqs.rfqNumber;
+        detail = {
+          id: rfqId,
+          rfqNumber,
+          customerId: rows[0].customers?.id,
+          ...rows[0].rfqs
+        };
+      }
+    } else {
+      detail = rfqDetails.find((r) => r.id === rfqId) as any;
+      if (detail) rfqNumber = detail.rfqNumber;
+    }
+
+    if (!detail) {
+      res.status(404).json({ error: "RFQ not found" });
+      return;
+    }
+
+    // Extract information using AI
+    const extractedData = await extractCustomerReplyInfo(bodyText);
+
+    // Filter out nulls for updating
+    const updates: any = {};
+    if (extractedData.name) updates.name = extractedData.name;
+    if (extractedData.company) updates.company = extractedData.company;
+    if (extractedData.email) updates.email = extractedData.email;
+    if (extractedData.phone) updates.phone = extractedData.phone;
+    if (extractedData.address) updates.address = extractedData.address;
+
+    // Update Customer record
+    if (isDb && db && detail.customerId && Object.keys(updates).length > 0) {
+      await db.update(customersTable).set(updates).where(eq(customersTable.id, detail.customerId));
+    } else if (!isDb && Object.keys(updates).length > 0) {
+      if (updates.name) detail.customer = updates.name;
+      if (updates.company) detail.customerCompany = updates.company;
+      if (updates.email) detail.customerEmail = updates.email;
+      if (updates.phone) detail.customerPhone = updates.phone;
+      if (updates.address) detail.customerAddress = updates.address;
+    }
+
+    // Re-run validation
+    const mockEmail = detail.customer ? detail.customer.toLowerCase().replace(" ", ".") + "@" + (detail.customerCompany ? detail.customerCompany.toLowerCase().replace(" ", "") : "example") + ".com" : undefined;
+    
+    let cName = isDb ? updates.name || "Unknown" : detail.customer;
+    let cComp = isDb ? updates.company || "Unknown" : detail.customerCompany;
+    let cEmail = isDb ? updates.email : (updates.email || detail.customerEmail || mockEmail);
+    let cPhone = isDb ? updates.phone : (updates.phone || detail.customerPhone);
+    let cAddress = isDb ? updates.address : (updates.address || detail.customerAddress);
+
+    // We can also fetch the updated row to be perfectly sure of current db state, 
+    // but we can just use the existing fields if updates are missing
+    if (isDb && db && detail.customerId) {
+      const cRows = await db.select().from(customersTable).where(eq(customersTable.id, detail.customerId));
+      if (cRows.length > 0) {
+         cName = cRows[0].name;
+         cComp = cRows[0].company;
+         cEmail = cRows[0].email;
+         cPhone = cRows[0].phone;
+         cAddress = cRows[0].address;
+      }
+    }
+
+    const validateCustomerFields = (name?: string|null, comp?: string|null, em?: string|null, ph?: string|null, addr?: string|null) => {
+      const missing = [];
+      if (!name || name === "Unknown") missing.push("Full Name");
+      if (!comp || comp === "Unknown") missing.push("Company");
+      if (!em) missing.push("Email");
+      if (!ph) missing.push("Phone");
+      if (!addr) missing.push("Address");
+      return { isValid: missing.length === 0, missingFields: missing };
+    };
+
+    const validationResult = validateCustomerFields(cName, cComp, cEmail, cPhone, cAddress);
+
+    let newStatus = detail.status;
+    if (detail.status === "NEEDS_INFORMATION" && validationResult.isValid) {
+      newStatus = "READY_FOR_REVIEW";
+      
+      if (isDb && db) {
+        await db.update(rfqsTable).set({ status: newStatus }).where(eq(rfqsTable.id, dbId));
+      } else {
+        detail.status = newStatus;
+      }
+    }
+
+    if (isDb && db) {
+      await db.insert(aiReviewHistoryTable).values({
+        rfqId: dbId,
+        action: "CUSTOMER_INFO_UPDATED_VIA_REPLY",
+        notes: `Extracted customer fields from simulated reply. Extracted: ${Object.keys(updates).join(", ")}`,
+      });
+    } else {
+      if (!detail.reviewHistory) detail.reviewHistory = [];
+      detail.reviewHistory.push({
+        id: Date.now(),
+        action: "CUSTOMER_INFO_UPDATED_VIA_REPLY",
+        createdAt: new Date().toISOString(),
+        notes: `Extracted customer fields from simulated reply. Extracted: ${Object.keys(updates).join(", ")}`,
+      });
+    }
+
+    const response = ProcessCustomerReplyResponse.parse({
+      success: true,
+      status: newStatus,
+      extractedData: {
+        name: extractedData.name,
+        company: extractedData.company,
+        email: extractedData.email,
+        phone: extractedData.phone,
+        address: extractedData.address,
+      },
+      validation: {
+        isValid: validationResult.isValid,
+        missingCustomerFields: validationResult.missingFields
+      }
+    });
+
+    res.json(response);
+  } catch (error) {
+    console.error("[POST /rfqs/:rfqId/customer-reply] Error:", error);
+    res.status(500).json({ error: "Failed to process customer reply" });
+  }
+});
+
 
 router.post("/rfqs/:rfqId/request-info", async (req, res) => {
   try {
