@@ -1,3 +1,4 @@
+import { ErpDataPage } from '@/pages/erp-data';
 import { type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -51,6 +52,7 @@ function Router() {
           <Route path="/invoices/:invoiceId" component={InvoiceDetailPage} />
           <Route path="/fulfillment" component={FulfillmentsPage} />
           <Route path="/fulfillment/:fulfillmentId" component={FulfillmentDetailPage} />
+          <Route path="/erp-data" component={ErpDataPage} />
           <Route path="/shipping" component={ShippingPage} />
           <Route path="/shipping/:fulfillmentId" component={ShippingDetailPage} />
           {Object.keys(placeholders).filter(p => p !== '/orders' && p !== '/invoices' && p !== '/fulfillment' && p !== '/shipping').map((path) => <Route key={path} path={path}><PlaceholderPage path={path} /></Route>)}

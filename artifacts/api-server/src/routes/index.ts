@@ -1,3 +1,4 @@
+import erpRouter from "./erp";
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import operationsRouter from "./operations";
@@ -13,6 +14,7 @@ const router: IRouter = Router();
 router.use(healthRouter);
 router.use(ingestionRouter);
 router.use(integrationsRouter);
+router.use(erpRouter);
 router.use(operationsRouter);
 router.use(quotesRouter);
 router.use(ordersRouter);

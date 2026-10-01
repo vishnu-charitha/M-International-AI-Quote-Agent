@@ -64,6 +64,7 @@ const groups: NavGroup[] = [
       { label: 'Email configuration', href: '/email-configuration', icon: Archive },
       { label: 'Users', href: '/users', icon: Users },
       { label: 'Settings', href: '/settings', icon: Settings2 },
+      { label: 'ERP Data', href: '/erp-data', icon: Boxes },
     ],
   },
 ];

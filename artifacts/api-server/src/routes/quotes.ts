@@ -71,10 +71,12 @@ quotesRouter.post("/rfqs/:rfqId/quotes", async (req, res) => {
     return;
   }
 
-
+  const overrides = req.body || {};
 
   let unitPrice = 0;
-  if (item) {
+  if (overrides.unitPrice !== undefined && overrides.unitPrice !== null) {
+    unitPrice = Number(overrides.unitPrice);
+  } else if (item) {
     const catalogResults = await db.select().from(partCatalogTable).where(eq(partCatalogTable.partNumber, item.partNumber));
     const catalogItem = catalogResults[0];
     if (catalogItem) {
@@ -84,7 +86,7 @@ quotesRouter.post("/rfqs/:rfqId/quotes", async (req, res) => {
     }
   }
 
-  const quantity = item?.quantity || 1;
+  const quantity = overrides.quantity !== undefined && overrides.quantity !== null ? Number(overrides.quantity) : (item?.quantity || 1);
   const subtotal = unitPrice * quantity;
   const tax = subtotal * 0.08;
   const shippingCost = 50;
