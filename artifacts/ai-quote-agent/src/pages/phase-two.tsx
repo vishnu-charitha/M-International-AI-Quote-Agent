@@ -270,6 +270,64 @@ export function RfqDetailPageV2() {
   const [showSimulateReplyModal, setShowSimulateReplyModal] = useState(false);
   const [simulateReplyForm, setSimulateReplyForm] = useState({ bodyText: '' });
   const processCustomerReply = useProcessCustomerReply();
+  
+  const [draftQuantity, setDraftQuantity] = useState<number | ''>('');
+  const [draftPrice, setDraftPrice] = useState<number | ''>('');
+  const [draftInventory, setDraftInventory] = useState<any>(null);
+  const [draftProduct, setDraftProduct] = useState<any>(null);
+
+  useEffect(() => {
+    if (rfq.data?.status === 'APPROVED' && rfq.data?.partNumber) {
+      setDraftQuantity((rfq.data as any).quantity ?? 1);
+      
+      fetch(`/api/erp/inventory/${rfq.data.partNumber}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.value && data.value.length > 0) {
+            setDraftInventory(data.value[0]);
+          }
+        })
+        .catch(console.error);
+
+      fetch('/api/erp/products')
+        .then(r => r.json())
+        .then(data => {
+          const prod = data.value?.find((p: any) => p.ItemNumber === rfq.data.partNumber);
+          if (prod) {
+            setDraftProduct(prod);
+            if (prod.UnitPrice) {
+              setDraftPrice(prod.UnitPrice);
+            }
+          }
+        })
+        .catch(console.error);
+    }
+  }, [rfq.data?.status, rfq.data?.partNumber, (rfq.data as any)?.quantity]);
+
+  const handleGenerateCustomQuote = async () => {
+    if (draftQuantity === '' || draftPrice === '') {
+      toast({ title: 'Validation Error', description: 'Please enter valid quantity and price.', variant: 'destructive' });
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/rfqs/${id}/quotes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quantity: Number(draftQuantity),
+          unitPrice: Number(draftPrice)
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to generate quote');
+      
+      const data = await response.json();
+      setLocation(`/quotes/${data.id}`);
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+  };
 
   const handleSimulateReplySubmit = async () => {
     try {
@@ -537,31 +595,99 @@ export function RfqDetailPageV2() {
   )}
 
   {(item.status === 'APPROVED' || item.status === 'QUOTED') && (
-    <div className="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 p-6 shadow-sm flex items-center justify-between">
-      <div>
-        <h3 className="text-[14px] font-extrabold text-emerald-900">
-          {item.status === 'QUOTED' || existingQuote ? 'Quotation Generated' : 'RFQ Approved'}
-        </h3>
-        <p className="mt-1 text-[12px] leading-relaxed text-emerald-800/90">
-          {item.status === 'QUOTED' || existingQuote 
-            ? 'A quotation has been generated for this request.'
-            : 'This request has been approved and is ready for quoting.'}
-        </p>
+    <div className="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-[14px] font-extrabold text-emerald-900">
+            {item.status === 'QUOTED' || existingQuote ? 'Quotation Generated' : 'Prepare Quotation'}
+          </h3>
+          <p className="mt-1 text-[12px] leading-relaxed text-emerald-800/90">
+            {item.status === 'QUOTED' || existingQuote 
+              ? 'A quotation has been generated for this request.'
+              : 'Draft your quotation before generating the official document.'}
+          </p>
+        </div>
+        {(item.status === 'QUOTED' || existingQuote) ? (
+          <Button 
+            onClick={() => setLocation(`/quotes/${existingQuote?.id || ''}`)}
+            disabled={!existingQuote}
+            className="bg-emerald-600 text-white hover:bg-emerald-700">
+            View Quote
+          </Button>
+        ) : null}
       </div>
-      {(item.status === 'QUOTED' || existingQuote) ? (
-        <Button 
-          onClick={() => setLocation(`/quotes/${existingQuote?.id || ''}`)}
-          disabled={!existingQuote}
-          className="bg-emerald-600 text-white hover:bg-emerald-700">
-          View Quote
-        </Button>
-      ) : (
-        <Button 
-          onClick={() => generateQuote.mutate({ rfqId: item.id })}
-          disabled={generateQuote.isPending}
-          className="bg-emerald-600 text-white hover:bg-emerald-700">
-          {generateQuote.isPending ? 'Generating...' : 'Generate Quote'}
-        </Button>
+
+      {item.status === 'APPROVED' && !existingQuote && (
+        <div className="bg-white rounded border border-emerald-200 p-4">
+          <div className="grid grid-cols-4 gap-4 items-end text-[12px]">
+            <div className="col-span-1">
+              <label className="eyebrow block mb-1">Part Number</label>
+              <div className="font-bold">{item.partNumber}</div>
+              <div className="text-[10px] text-[hsl(var(--muted-foreground))] mt-1 truncate">
+                {draftProduct?.ProductName || extended.description}
+              </div>
+            </div>
+            
+            <div className="col-span-1">
+              <label className="eyebrow block mb-1">Quantity</label>
+              <input
+                type="number"
+                min="1"
+                value={draftQuantity}
+                onChange={(e) => setDraftQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+                className="w-full rounded border border-emerald-200 px-2 py-1.5 outline-none focus:border-emerald-500"
+              />
+            </div>
+            
+            <div className="col-span-1">
+              <label className="eyebrow block mb-1">Unit Price ($)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={draftPrice}
+                onChange={(e) => setDraftPrice(e.target.value === '' ? '' : Number(e.target.value))}
+                className={`w-full rounded border px-2 py-1.5 outline-none ${draftPrice === '' ? 'border-amber-400 bg-amber-50' : 'border-emerald-200 focus:border-emerald-500'}`}
+              />
+            </div>
+            
+            <div className="col-span-1 text-right">
+              <label className="eyebrow block mb-1">Subtotal</label>
+              <div className="font-bold text-[14px]">
+                {draftQuantity !== '' && draftPrice !== '' ? 
+                  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(draftQuantity) * Number(draftPrice)) 
+                  : '$0.00'}
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-3 flex justify-between items-start pt-3 border-t border-emerald-100">
+            <div className="text-[11px]">
+              {draftInventory ? (
+                <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                  <CheckCircle2 size={12} />
+                  ERP Inventory: {draftInventory.AvailableQuantity} available at {draftInventory.Site} / {draftInventory.Warehouse}
+                </div>
+              ) : (
+                <div className="text-slate-500">Checking ERP inventory...</div>
+              )}
+              
+              {draftPrice === '' && (
+                <div className="mt-1 flex items-center gap-1.5 text-amber-600 font-bold">
+                  <AlertCircle size={12} />
+                  Price needs confirmation. Please enter a valid unit price.
+                </div>
+              )}
+            </div>
+            
+            <Button 
+              onClick={handleGenerateCustomQuote}
+              disabled={draftQuantity === '' || draftPrice === ''}
+              className="bg-emerald-600 text-white hover:bg-emerald-700">
+              Save & Generate Quote
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )}

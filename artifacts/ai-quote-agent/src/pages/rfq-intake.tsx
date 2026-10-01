@@ -1,9 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useAnalyzeRfq, useCreateRfq, RequestType, AnalyzeRfqResult } from '@workspace/api-client-react';
 import { ArrowLeft, Sparkles, Check, CheckCircle2, AlertCircle, Copy, Send } from 'lucide-react';
 import { PageHeading, SectionTitle, LoadingRows, QueryState, ConfidenceBar } from '@/components/ops-primitives';
+type ErpCustomer = {
+  CustomerAccount: string;
+  OrganizationName: string;
+  Email?: string;
+};
+
+type ErpProduct = {
+  ItemNumber: string;
+  ProductName: string;
+  Unit?: string;
+  UnitPrice?: number;
+};
 
 export function ManualRfqIntakePage() {
   const [, setLocation] = useLocation();
@@ -16,9 +28,72 @@ export function ManualRfqIntakePage() {
 
   const isMissingPhone = analyzedData ? !analyzedData.customer?.phone?.trim() : false;
   const missingFieldsText = isMissingPhone ? 'Phone number' : '';
+  const [erpCustomers, setErpCustomers] = useState<ErpCustomer[]>([]);
+  const [erpProducts, setErpProducts] = useState<ErpProduct[]>([]);
+  const [erpLoading, setErpLoading] = useState(true);
+  const [erpError, setErpError] = useState('');
+  
+  const [inventories, setInventories] = useState<Record<string, { AvailableQuantity: number, Site: string, Warehouse: string } | null>>({});
+  const [inventoryLoading, setInventoryLoading] = useState<Record<string, boolean>>({});
+
+  const fetchInventory = async (itemNumber: string) => {
+    if (inventories[itemNumber] || inventoryLoading[itemNumber]) return;
+    setInventoryLoading(prev => ({ ...prev, [itemNumber]: true }));
+    try {
+      const res = await fetch(`/api/erp/inventory/${itemNumber}`);
+      if (res.ok) {
+        const data = await res.json();
+        setInventories(prev => ({ ...prev, [itemNumber]: data.value?.[0] || null }));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setInventoryLoading(prev => ({ ...prev, [itemNumber]: false }));
+    }
+  };
 
   const { toast } = useToast();
+useEffect(() => {
+  let cancelled = false;
 
+  async function loadErpData() {
+    try {
+      setErpLoading(true);
+      setErpError('');
+
+      const [customersResponse, productsResponse] = await Promise.all([
+        fetch('/api/erp/customers'),
+        fetch('/api/erp/products'),
+      ]);
+
+      if (!customersResponse.ok || !productsResponse.ok) {
+        throw new Error('Unable to load ERP data.');
+      }
+
+      const customersData = await customersResponse.json();
+      const productsData = await productsResponse.json();
+
+      if (!cancelled) {
+        setErpCustomers(customersData.value ?? []);
+        setErpProducts(productsData.value ?? []);
+      }
+    } catch {
+      if (!cancelled) {
+        setErpError('ERP data could not be loaded. Please try again.');
+      }
+    } finally {
+      if (!cancelled) {
+        setErpLoading(false);
+      }
+    }
+  }
+
+  void loadErpData();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
   const handleAnalyze = () => {
     if (!rawText.trim()) return;
     analyzeMutation.mutate({ data: { rawText } }, {
@@ -165,6 +240,34 @@ export function ManualRfqIntakePage() {
                   </div>
                 )}
 
+                                <div className="mb-4 rounded-md border border-[hsl(var(--border))] p-3">
+                  <label className="eyebrow mb-1.5 block">Link to ERP Customer</label>
+                  {erpLoading ? (
+                    <div className="text-[11px] text-[hsl(var(--muted-foreground))]">Loading ERP customers...</div>
+                  ) : erpError ? (
+                    <div className="text-[11px] text-red-500">{erpError}</div>
+                  ) : (
+                    <select
+                      className="w-full rounded border border-[hsl(var(--input))] bg-transparent px-2.5 py-1.5 text-[11px] outline-none focus:border-[hsl(var(--accent))]"
+                      onChange={(e) => {
+                        const cust = erpCustomers.find(c => c.CustomerAccount === e.target.value);
+                        if (cust) {
+                          updateCustomer('name', cust.OrganizationName);
+                          if (cust.Email) updateCustomer('email', cust.Email);
+                        }
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>Select an ERP Customer...</option>
+                      {erpCustomers.map(c => (
+                        <option key={c.CustomerAccount} value={c.CustomerAccount}>
+                          {c.CustomerAccount} - {c.OrganizationName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div>
                     <label className="eyebrow mb-1.5 block">Customer Name</label>
@@ -210,6 +313,40 @@ export function ManualRfqIntakePage() {
                   <div className="eyebrow">Requested Items</div>
                   {analyzedData.items.map((item, index) => (
                     <div key={index} className="grid grid-cols-[1fr_2fr_80px] gap-3 rounded bg-[hsl(var(--muted)/.4)] p-3">
+                      <div className="col-span-3 mb-2 rounded bg-black/10 p-2">
+                        <label className="eyebrow mb-1.5 block">Link to ERP Product</label>
+                        {erpLoading ? (
+                           <div className="text-[11px] text-[hsl(var(--muted-foreground))]">Loading ERP products...</div>
+                        ) : (
+                           <select
+                              className="w-full rounded border border-[hsl(var(--input))] bg-transparent px-2.5 py-1.5 text-[11px] outline-none focus:border-[hsl(var(--accent))]"
+                              onChange={(e) => {
+                                const prod = erpProducts.find(p => p.ItemNumber === e.target.value);
+                                if (prod) {
+                                  updateItem(index, 'partNumber', prod.ItemNumber);
+                                  updateItem(index, 'description', prod.ProductName);
+                                  fetchInventory(prod.ItemNumber);
+                                }
+                              }}
+                              value={erpProducts.find(p => p.ItemNumber === item.partNumber)?.ItemNumber || ""}
+                           >
+                             <option value="">Select an ERP Product...</option>
+                             {erpProducts.map(p => (
+                               <option key={p.ItemNumber} value={p.ItemNumber}>
+                                 {p.ItemNumber} - {p.ProductName}
+                               </option>
+                             ))}
+                           </select>
+                        )}
+                        {item.partNumber && inventories[item.partNumber] && (
+                          <div className="mt-1 text-[10px] text-emerald-600 font-medium">
+                            Inventory: {inventories[item.partNumber]?.AvailableQuantity ?? 0} available at {inventories[item.partNumber]?.Site} / {inventories[item.partNumber]?.Warehouse}
+                          </div>
+                        )}
+                        {item.partNumber && inventoryLoading[item.partNumber] && (
+                          <div className="mt-1 text-[10px] text-[hsl(var(--muted-foreground))]">Checking inventory...</div>
+                        )}
+                      </div>
                       <div>
                         <div className="text-[9px] uppercase tracking-wider text-[hsl(var(--muted-foreground))] mb-1">Part Number</div>
                         <input
